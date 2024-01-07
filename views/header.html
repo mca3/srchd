@@ -1,0 +1,18 @@
+{{define "header"}}
+<!DOCTYPE html>
+
+<html lang="en">
+	<head>
+		<title>{{.Title}}</title>
+
+		<link rel="stylesheet" type="text/css" href="/css/main.css">
+	</head>
+	<body>
+
+	<nav>
+		<h1><a href="/">srchd</a></h1>
+		<form method="GET" action="/search">
+			<input type="search" name="q" id="q" placeholder="Search..."{{if .Query}} value="{{.Query}}"{{end}}>
+		</form>
+	</nav>
+{{end}}
