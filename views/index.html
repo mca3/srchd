@@ -1,7 +1,12 @@
 {{template "header" .}}
 
-<main>
-	<p>srchd is a metasearch engine.</p>
-</main>
+<header>
+	<h1>srchd</h1>
+</header>
+
+<form id="search" class="index" action="/search">
+	<input type="search" name="q" placeholder="Search...">
+	<input type="submit" value="Go">
+</form>
 
 {{template "footer" .}}

@@ -1,0 +1,81 @@
+body {
+	width: 48rem;
+	max-width: 96%;
+	margin: auto;
+
+	font-family: sans-serif;
+}
+
+header {
+	margin: 4em 0;
+	text-align: center;
+}
+
+#search {
+	display: flex;
+	width: 100%;
+	height: 2em;
+}
+
+#search.index  {
+	width: 75%;
+	text-align: center;
+	margin: auto;
+}
+
+#search input[type="search"] {
+	flex-grow: 1;
+}
+
+nav {
+	display: flex;
+	width: 100%;
+	margin-bottom: 1em;
+	align-items: center;
+}
+
+nav .name, nav .name:link, nav .name:visited {
+	margin-right: 0.5em;
+	font-weight: bold;
+	text-decoration: none;
+	color: black;
+}
+
+nav .name:hover {
+	text-decoration: underline;
+}
+
+.result {
+	margin: 1em 0;
+}
+
+.result > a {
+	text-decoration: none;
+}
+
+.result .title {
+	margin: 0;
+	text-decoration: underline;
+}
+
+.result .link {
+	color: green;
+}
+
+.result .desc {
+	margin: 0;
+	margin-top: 0.1em;
+	font-size: 0.9em;
+}
+
+#nextpage {
+	background: unset;
+	outline: none;
+	border: none;
+	cursor: pointer;
+
+	padding: 0;
+	margin: 1em 0;
+	text-decoration: underline;
+	font-size: 1.25em;
+}

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // Engine is an interface that implements the bare essentials for doing web
@@ -58,4 +59,15 @@ func New(engine, name string, config ...any) (Engine, error) {
 	}
 
 	return fn(name, config...)
+}
+
+// Strips the preceeding http:// or https:// from the link.
+func (r *Result) FancyURL() string {
+	if strings.HasPrefix(r.Link, "http://") {
+		return r.Link[len("http://"):]
+	} else if strings.HasPrefix(r.Link, "https://") {
+		return r.Link[len("https://"):]
+	}
+
+	return r.Link
 }
