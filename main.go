@@ -14,6 +14,7 @@ import (
 	"git.int21h.xyz/srchd/search"
 
 	_ "git.int21h.xyz/srchd/search/ddg"
+	_ "git.int21h.xyz/srchd/search/wiby"
 )
 
 type tmplData struct {
@@ -41,7 +42,7 @@ var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
 func main() {
 	engines := []search.Engine{}
 
-	eng, err := search.New("ddg", "duckduckgo")
+	eng, err := search.New("wiby", "wiby")
 	if err != nil {
 		panic(err)
 	}
