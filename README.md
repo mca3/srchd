@@ -13,7 +13,7 @@ srchd holds all of the resources it needs to run within itself, so all you would
 
 There is no configuration as of now.
 
-## Search enigne support
+## Search engine support
 
 srchd is a young project and as such doesn't have a lot of support.
 

@@ -40,26 +40,23 @@ var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
 }).ParseFS(tmplFS, "views/*.html"))
 
 func main() {
-	engines := []search.Engine{}
-
-	eng, err := search.New("wiby", "wiby")
-	if err != nil {
-		panic(err)
+	for _, v := range []string{"ddg", "wiby"} {
+		eng, err := search.New(v, v)
+		if err != nil {
+			panic(err)
+		}
+		engines[v] = eng
 	}
-	engines = append(engines, eng)
 
 	h := &mwr.Handler{}
 
 	h.Get("/search", func(c *mwr.Ctx) error {
 		res := []search.Result{}
 		pageNo, _ := strconv.Atoi(c.Query("p", "0"))
-
-		for _, v := range engines {
-			r, err := v.Search(c.Context(), c.Query("q"), pageNo)
-			if err != nil {
-				log.Printf("search failed: %v", err)
-			}
-			res = append(res, r...)
+		
+		res, err := doSearch(c, c.Query("q"), pageNo)
+		if err != nil {
+			return err
 		}
 
 		log.Printf("found %d results for %q", len(res), c.Query("q"))
