@@ -2,9 +2,9 @@ package main
 
 import (
 	"log"
-	"sync"
-	"strings"
 	"slices"
+	"strings"
+	"sync"
 
 	"git.int21h.xyz/mwr"
 	"git.int21h.xyz/srchd/search"

@@ -14,6 +14,7 @@ import (
 	"git.int21h.xyz/srchd/search"
 
 	_ "git.int21h.xyz/srchd/search/ddg"
+	_ "git.int21h.xyz/srchd/search/google"
 	_ "git.int21h.xyz/srchd/search/wiby"
 )
 
@@ -40,7 +41,7 @@ var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
 }).ParseFS(tmplFS, "views/*.html"))
 
 func main() {
-	for _, v := range []string{"ddg", "wiby"} {
+	for _, v := range []string{"ddg", "wiby", "google"} {
 		eng, err := search.New(v, v)
 		if err != nil {
 			panic(err)
@@ -53,7 +54,7 @@ func main() {
 	h.Get("/search", func(c *mwr.Ctx) error {
 		res := []search.Result{}
 		pageNo, _ := strconv.Atoi(c.Query("p", "0"))
-		
+
 		res, err := doSearch(c, c.Query("q"), pageNo)
 		if err != nil {
 			return err
