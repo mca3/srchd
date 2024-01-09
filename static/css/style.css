@@ -88,3 +88,26 @@ nav .name:hover {
 	text-decoration: underline;
 	font-size: 1.25em;
 }
+
+@media (prefers-color-scheme: dark) {
+	body {
+		background: #111;
+		color: #eee;
+	}
+
+	nav .name, nav .name:link, nav .name:visited {
+		color: #fff;
+	}
+
+	.result > a {
+		color: #3333ff;
+	}
+
+	.result .link {
+		color: #33bb33;
+	}
+
+	#nextpage {
+		color: #fff;
+	}
+}
