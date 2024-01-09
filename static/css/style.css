@@ -51,6 +51,7 @@ nav .name:hover {
 
 .result > a {
 	text-decoration: none;
+	display: inline-block;
 }
 
 .result .title {
@@ -66,6 +67,14 @@ nav .name:hover {
 	margin: 0;
 	margin-top: 0.1em;
 	font-size: 0.9em;
+	word-wrap: break-word;
+}
+
+.result .source {
+	color: gray;
+	float: right;
+	font-weight: bold;
+	font-size: 0.8em;
 }
 
 #nextpage {
