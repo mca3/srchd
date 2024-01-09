@@ -13,7 +13,7 @@ import (
 var engines = map[string]search.Engine{}
 
 func findWantedEngines(c *mwr.Ctx) []string {
-	request := c.Cookie("engines")
+	request := strings.TrimSpace(c.Cookie("engines"))
 	if len(request) == 0 {
 		return nil
 	}
@@ -26,8 +26,6 @@ func doSearch(c *mwr.Ctx, query string, page int) ([]search.Result, error) {
 	wantEngines := findWantedEngines(c)
 	results := []search.Result{}
 	mu := sync.Mutex{}
-
-	log.Println(wantEngines)
 
 	for name, eng := range engines {
 		if len(wantEngines) != 0 && !slices.Contains(wantEngines, name) {

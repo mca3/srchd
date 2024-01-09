@@ -154,24 +154,32 @@ func (d *ddg) Search(ctx context.Context, query string, page int) ([]search.Resu
 	// 2. description
 	// 3. timestamp
 	// 4. nothing
-	// So, the number of results is floor(number of children / 4).
+	// So, the max number of results is floor(number of children / 4).
+	// Ads are stripped out, of course, and it's unknown how many of those
+	// there are.
 
-	results := make([]search.Result, int(elem.Length()/4))
+	results := make([]search.Result, 0, int(elem.Length()/4))
 
-	for i := range results {
+	for i := 0; i < int(elem.Length()/4); i++ {
 		v := search.Result{}
 
 		header := elem.Eq(i * 4)
 		link := header.Find("a.result-link")
+
 		desc := elem.Eq((i * 4) + 1).First().Find("tr .result-snippet")
-		// ts := elem.Eq((i * 4) + 2)
+
+		// Check for ads.
+		v.Link, _ = link.Attr("href")
+		if v.Link == "//duckduckgo.com/l/?uddg=https%3A%2F%2Fduckduckgo.com%2Fy.js" {
+			continue
+		}
 
 		v.Title = link.Text()
-		v.Link, _ = link.Attr("href")
 		v.Link = getRealUrl(v.Link)
 		v.Description = strings.TrimSpace(desc.Text())
 		v.Source = d.name
 
+		results = append(results, v)
 		results[i] = v
 	}
 

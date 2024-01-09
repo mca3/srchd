@@ -52,7 +52,6 @@ func main() {
 	h := &mwr.Handler{}
 
 	h.Get("/search", func(c *mwr.Ctx) error {
-		res := []search.Result{}
 		pageNo, _ := strconv.Atoi(c.Query("p", "0"))
 
 		res, err := doSearch(c, c.Query("q"), pageNo)
