@@ -15,10 +15,11 @@
 	{{end}}
 </main>
 
-<form action="/search" method="GET">
-	<input type="hidden" name="q" value="{{.Query}}">
-	<input type="hidden" name="p" value="{{inc .Page}}">
-	<input type="submit" id="nextpage" value="Next page...">
-</form>
+<div id="paginator">
+	{{if gt .Page 1}}<a href="/search?q={{.Query}}">&lt;&lt;</a>{{end}}
+	{{if gt .Page 0}}<a href="/search?q={{.Query}}{{if ne .Page 1}}&p={{dec .Page}}{{end}}">&lt;</a>{{end}}
+	<a>{{.Page}}</a>
+	<a href="/search?q={{.Query}}&p={{inc .Page}}">&gt;</a>
+</div>
 
 {{template "footer" .}}

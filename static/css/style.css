@@ -77,16 +77,8 @@ nav .name:hover {
 	font-size: 0.8em;
 }
 
-#nextpage {
-	background: unset;
-	outline: none;
-	border: none;
-	cursor: pointer;
-
-	padding: 0;
+#paginator {
 	margin: 1em 0;
-	text-decoration: underline;
-	font-size: 1.25em;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -105,9 +97,5 @@ nav .name:hover {
 
 	.result .link {
 		color: #33bb33;
-	}
-
-	#nextpage {
-		color: #fff;
 	}
 }
