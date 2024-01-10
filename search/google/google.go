@@ -2,6 +2,7 @@ package google
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -25,7 +26,11 @@ func init() {
 }
 
 // Search attempts to query the engine and returns a number of results.
-func (g *google) Search(ctx context.Context, query string, page int) ([]search.Result, error) {
+func (g *google) Search(ctx context.Context, category search.Category, query string, page int) ([]search.Result, error) {
+	if category != search.General {
+		return nil, errors.ErrUnsupported
+	}
+
 	form := url.Values{}
 
 	form.Set("q", query)

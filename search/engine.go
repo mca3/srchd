@@ -12,7 +12,7 @@ import (
 // searches.
 type Engine interface {
 	// Search attempts to query the engine and returns a number of results.
-	Search(ctx context.Context, query string, page int) ([]Result, error)
+	Search(ctx context.Context, category Category, query string, page int) ([]Result, error)
 
 	// Ping checks to see if the engine is reachable.
 	Ping(ctx context.Context) error
@@ -33,6 +33,15 @@ type Result struct {
 	// Source holds an identifier for this search engine.
 	Source string
 }
+
+type Category int
+
+const (
+	General Category = iota
+	Videos
+	Images
+	News
+)
 
 var engines = map[string]func(name string, config ...any) (Engine, error){}
 

@@ -3,6 +3,7 @@ package wiby
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 
@@ -43,7 +44,11 @@ func (w *wiby) toNativeResult(r wibyResult) search.Result {
 	}
 }
 
-func (w *wiby) Search(ctx context.Context, query string, page int) ([]search.Result, error) {
+func (w *wiby) Search(ctx context.Context, category search.Category, query string, page int) ([]search.Result, error) {
+	if category != search.General {
+		return nil, errors.ErrUnsupported
+	}
+
 	// Wiby has a native API we can use.
 	// There's probably some encoding/json tomfoolery I could employ so we
 	// don't need an intermediate step, but whatever.

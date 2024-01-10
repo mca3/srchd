@@ -37,7 +37,7 @@ func doSearch(c *mwr.Ctx, query string, page int) ([]search.Result, error) {
 		go func(e search.Engine) {
 			defer wg.Done()
 
-			res, err := e.Search(c.Context(), query, page)
+			res, err := e.Search(c.Context(), search.General, query, page)
 			if err != nil {
 				log.Printf("search failed: %v", err)
 			}
