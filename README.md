@@ -17,6 +17,7 @@ There is no configuration as of now.
 
 srchd is a young project and as such doesn't have a lot of support.
 
+- Bing
 - DuckDuckGo
 - Google
 - wiby.me (native API)
