@@ -36,6 +36,21 @@ var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
 	},
 }).ParseFS(tmplFS, "views/*.html"))
 
+func getCategory(q string) (search.Category, bool) {
+	switch q {
+	case "", "g":
+		return search.General, true
+	case "v":
+		return search.Videos, true
+	case "i":
+		return search.Images, true
+	case "n":
+		return search.News, true
+	}
+
+	return -1, false
+}
+
 func main() {
 	for _, v := range search.Supported() {
 		eng, err := search.New(v, v)
@@ -49,8 +64,12 @@ func main() {
 
 	h.Get("/search", func(c *mwr.Ctx) error {
 		pageNo, _ := strconv.Atoi(c.Query("p", "0"))
+		category, ok := getCategory(c.Query("c"))
+		if !ok {
+			return c.Status(400).SendString("invalid category") // TODO
+		}
 
-		res, err := doSearch(c, c.Query("q"), pageNo)
+		res, err := doSearch(c, category, c.Query("q"), pageNo)
 		if err != nil {
 			return err
 		}

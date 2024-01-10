@@ -20,7 +20,7 @@ func findWantedEngines(c *mwr.Ctx) []string {
 	return strings.Split(request, ";")
 }
 
-func doSearch(c *mwr.Ctx, query string, page int) ([]search.Result, error) {
+func doSearch(c *mwr.Ctx, category search.Category, query string, page int) ([]search.Result, error) {
 	wg := sync.WaitGroup{}
 
 	wantEngines := findWantedEngines(c)
@@ -37,7 +37,7 @@ func doSearch(c *mwr.Ctx, query string, page int) ([]search.Result, error) {
 		go func(e search.Engine) {
 			defer wg.Done()
 
-			res, err := e.Search(c.Context(), search.General, query, page)
+			res, err := e.Search(c.Context(), category, query, page)
 			if err != nil {
 				log.Printf("search failed: %v", err)
 			}

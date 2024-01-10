@@ -24,37 +24,8 @@ func init() {
 	})
 }
 
-// Search attempts to query the engine and returns a number of results.
-func (g *google) Search(ctx context.Context, category Category, query string, page int) ([]Result, error) {
-	if category != General {
-		return nil, errors.ErrUnsupported
-	}
-
-	form := url.Values{}
-
-	form.Set("q", query)
-
-	if page >= 1 {
-		form.Set("start", fmt.Sprint(page*10))
-	}
-
-	ctx, cancel := g.http.Context(ctx)
-	defer cancel()
-
-	res, err := g.http.Get(
-		ctx,
-		fmt.Sprintf("https://google.com/search?%s", form.Encode()),
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	doc, err := goquery.NewDocumentFromReader(res.Body)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse html: %w", err)
-	}
-
+// Parses a general query results page.
+func (g *google) parseGeneral(doc *goquery.Document) ([]Result, error) {
 	// Because we don't use the non-JS variant, we are given an extra class
 	// on search results which is *very* helpful!
 	// And it doesn't change occasionally.
@@ -91,6 +62,84 @@ func (g *google) Search(ctx context.Context, category Category, query string, pa
 	}
 
 	return results, nil
+}
+
+// Parses news query results.
+func (g *google) parseNews(doc *goquery.Document) ([]Result, error) {
+	// News stuff is done a bit differently than normal but isn't too hard to parse.
+	elem := doc.Find("#rso > div > div").Children()
+
+	// And there's all of our news results.
+	results := make([]Result, int(elem.Length()))
+
+	for i := range results {
+		v := Result{}
+
+		// Everything is wrapped in the a element.
+		a := elem.Eq(i).Find("div > div > a")
+		v.Link, _ = a.Attr("href")
+
+		e := a.Children()
+
+		// Title is followed by the description.
+		// The role is a pretty good way to find the title.
+		title := e.Find(`div[role="heading"]`)
+		desc := title.Next()
+
+		v.Title = title.Text()
+		v.Description = strings.TrimSpace(desc.Text())
+		v.Source = g.name
+
+		results[i] = v
+	}
+
+	return results, nil
+}
+
+// Search attempts to query the engine and returns a number of results.
+func (g *google) Search(ctx context.Context, category Category, query string, page int) ([]Result, error) {
+	form := url.Values{}
+
+	form.Set("q", query)
+
+	switch category {
+	case General:
+		// This space is intentionally left blank.
+	case News:
+		form.Set("tbm", "nws")
+	default:
+		return nil, errors.ErrUnsupported
+	}
+
+	if page >= 1 {
+		form.Set("start", fmt.Sprint(page*10))
+	}
+
+	ctx, cancel := g.http.Context(ctx)
+	defer cancel()
+
+	res, err := g.http.Get(
+		ctx,
+		fmt.Sprintf("https://google.com/search?%s", form.Encode()),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse html: %w", err)
+	}
+
+	switch category {
+	case General:
+		return g.parseGeneral(doc)
+	case News:
+		return g.parseNews(doc)
+	default:
+		panic("unreachable")
+	}
 }
 
 // Ping checks to see if the engine is reachable.
