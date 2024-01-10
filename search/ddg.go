@@ -79,7 +79,7 @@ func determinePageParams(page int) (s int, dc int) {
 }
 
 // Decodes the DDG href.
-func getRealUrl(href string) string {
+func decodeDDGHref(href string) string {
 	i := strings.IndexRune(href, '?')
 	href = href[i+1:]
 
@@ -174,17 +174,16 @@ func (d *ddg) Search(ctx context.Context, category Category, query string, page 
 
 		// Check for ads.
 		v.Link, _ = link.Attr("href")
-		if v.Link == "//duckduckgo.com/l/?uddg=https%3A%2F%2Fduckduckgo.com%2Fy.js" {
+		v.Link = decodeDDGHref(v.Link)
+		if strings.HasPrefix(v.Link, "https://duckduckgo.com/y.js") {
 			continue
 		}
 
 		v.Title = link.Text()
-		v.Link = getRealUrl(v.Link)
 		v.Description = strings.TrimSpace(desc.Text())
 		v.Source = d.name
 
 		results = append(results, v)
-		results[i] = v
 	}
 
 	return results, nil

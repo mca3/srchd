@@ -37,7 +37,7 @@ var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
 }).ParseFS(tmplFS, "views/*.html"))
 
 func main() {
-	for _, v := range []string{"ddg", "wiby", "google"} {
+	for _, v := range search.Supported() {
 		eng, err := search.New(v, v)
 		if err != nil {
 			panic(err)

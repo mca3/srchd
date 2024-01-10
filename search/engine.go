@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 )
 
 // Engine is an interface that implements the bare essentials for doing web
@@ -68,6 +69,19 @@ func New(engine, name string, config ...any) (Engine, error) {
 	}
 
 	return fn(name, config...)
+}
+
+var supportedEngines []string
+var supportedOnce sync.Once
+
+// Supported returns a string of supported engines.
+func Supported() []string {
+	supportedOnce.Do(func() {
+		for name := range engines {
+			supportedEngines = append(supportedEngines, name)
+		}
+	})
+	return supportedEngines
 }
 
 // Strips the preceeding http:// or https:// from the link.
