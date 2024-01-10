@@ -1,4 +1,4 @@
-package google
+package search
 
 import (
 	"context"
@@ -7,27 +7,26 @@ import (
 	"net/url"
 	"strings"
 
-	"git.int21h.xyz/srchd/search"
 	"github.com/PuerkitoBio/goquery"
 )
 
 type google struct {
 	name string
-	http *search.HttpClient
+	http *HttpClient
 }
 
 func init() {
-	search.Add("google", func(name string, config ...any) (search.Engine, error) {
+	Add("google", func(name string, config ...any) (Engine, error) {
 		return &google{
 			name: name,
-			http: &search.HttpClient{},
+			http: &HttpClient{},
 		}, nil
 	})
 }
 
 // Search attempts to query the engine and returns a number of results.
-func (g *google) Search(ctx context.Context, category search.Category, query string, page int) ([]search.Result, error) {
-	if category != search.General {
+func (g *google) Search(ctx context.Context, category Category, query string, page int) ([]Result, error) {
+	if category != General {
 		return nil, errors.ErrUnsupported
 	}
 
@@ -73,10 +72,10 @@ func (g *google) Search(ctx context.Context, category search.Category, query str
 	// and also the href.
 	// In the second div, the inner text is the description.
 	// And that's all we need!
-	results := make([]search.Result, int(elem.Length()))
+	results := make([]Result, int(elem.Length()))
 
 	for i := range results {
-		v := search.Result{}
+		v := Result{}
 
 		e := elem.Eq(i).Children().First().Children()
 		title := e.Eq(0).Find("h3")

@@ -1,14 +1,12 @@
-package ddg
+package search
 
 import (
 	"context"
 	"fmt"
 	"testing"
-
-	"git.int21h.xyz/srchd/search"
 )
 
-func TestPageParams(t *testing.T) {
+func TestDDGPageParams(t *testing.T) {
 	// This setup is completely unnecessary but it does verify my math.
 
 	tests := []struct{ page, s, dc int }{
@@ -29,13 +27,13 @@ func TestPageParams(t *testing.T) {
 	}
 }
 
-func TestSearch(t *testing.T) {
+func TestDDGSearch(t *testing.T) {
 	d := &ddg{
-		http: &search.HttpClient{},
+		http: &HttpClient{},
 		vqd:  map[string]string{},
 	}
 
-	res, err := d.Search(context.Background(), search.General, "hello world", 0)
+	res, err := d.Search(context.Background(), General, "hello world", 0)
 	if err != nil {
 		panic(err)
 	} else if len(res) == 0 {
@@ -49,7 +47,7 @@ func TestSearch(t *testing.T) {
 	}
 
 	// Ensure page 1 has results
-	res, err = d.Search(context.Background(), search.General, "hello world", 1)
+	res, err = d.Search(context.Background(), General, "hello world", 1)
 	if err != nil {
 		panic(err)
 	} else if len(res) == 0 {
@@ -63,7 +61,7 @@ func TestSearch(t *testing.T) {
 	}
 
 	// Ensure page 2 has results
-	res, err = d.Search(context.Background(), search.General, "hello world", 2)
+	res, err = d.Search(context.Background(), General, "hello world", 2)
 	if err != nil {
 		panic(err)
 	} else if len(res) == 0 {

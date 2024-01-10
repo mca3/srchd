@@ -1,4 +1,4 @@
-package ddg
+package search
 
 import (
 	"context"
@@ -8,14 +8,13 @@ import (
 	"strings"
 	"sync"
 
-	"git.int21h.xyz/srchd/search"
 	"github.com/PuerkitoBio/goquery"
 )
 
 // User agent to send requests with.
 type ddg struct {
 	name string
-	http *search.HttpClient
+	http *HttpClient
 
 	// vqd parameter.
 	//
@@ -27,10 +26,10 @@ type ddg struct {
 }
 
 func init() {
-	search.Add("ddg", func(name string, config ...any) (search.Engine, error) {
+	Add("ddg", func(name string, config ...any) (Engine, error) {
 		return &ddg{
 			name: name,
-			http: &search.HttpClient{},
+			http: &HttpClient{},
 			vqd:  map[string]string{},
 		}, nil
 	})
@@ -103,8 +102,8 @@ func getRealUrl(href string) string {
 }
 
 // Search attempts to query the engine and returns a number of results.
-func (d *ddg) Search(ctx context.Context, category search.Category, query string, page int) ([]search.Result, error) {
-	if category != search.General {
+func (d *ddg) Search(ctx context.Context, category Category, query string, page int) ([]Result, error) {
+	if category != General {
 		return nil, errors.ErrUnsupported
 	}
 
@@ -163,10 +162,10 @@ func (d *ddg) Search(ctx context.Context, category search.Category, query string
 	// Ads are stripped out, of course, and it's unknown how many of those
 	// there are.
 
-	results := make([]search.Result, 0, int(elem.Length()/4))
+	results := make([]Result, 0, int(elem.Length()/4))
 
 	for i := 0; i < int(elem.Length()/4); i++ {
-		v := search.Result{}
+		v := Result{}
 
 		header := elem.Eq(i * 4)
 		link := header.Find("a.result-link")

@@ -12,10 +12,6 @@ import (
 
 	"git.int21h.xyz/mwr"
 	"git.int21h.xyz/srchd/search"
-
-	_ "git.int21h.xyz/srchd/search/ddg"
-	_ "git.int21h.xyz/srchd/search/google"
-	_ "git.int21h.xyz/srchd/search/wiby"
 )
 
 type tmplData struct {

@@ -1,4 +1,4 @@
-package wiby
+package search
 
 import (
 	"context"
@@ -6,14 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-
-	"git.int21h.xyz/srchd/search"
 )
 
 // User agent to send requests with.
 type wiby struct {
 	name string
-	http *search.HttpClient
+	http *HttpClient
 }
 
 type wibyResult struct {
@@ -23,20 +21,20 @@ type wibyResult struct {
 }
 
 var (
-	_ search.Engine = &wiby{}
+	_ Engine = &wiby{}
 )
 
 func init() {
-	search.Add("wiby", func(name string, config ...any) (search.Engine, error) {
+	Add("wiby", func(name string, config ...any) (Engine, error) {
 		return &wiby{
 			name: name,
-			http: &search.HttpClient{},
+			http: &HttpClient{},
 		}, nil
 	})
 }
 
-func (w *wiby) toNativeResult(r wibyResult) search.Result {
-	return search.Result{
+func (w *wiby) toNativeResult(r wibyResult) Result {
+	return Result{
 		Link:        r.URL,
 		Title:       r.Title,
 		Description: r.Snippet,
@@ -44,8 +42,8 @@ func (w *wiby) toNativeResult(r wibyResult) search.Result {
 	}
 }
 
-func (w *wiby) Search(ctx context.Context, category search.Category, query string, page int) ([]search.Result, error) {
-	if category != search.General {
+func (w *wiby) Search(ctx context.Context, category Category, query string, page int) ([]Result, error) {
+	if category != General {
 		return nil, errors.ErrUnsupported
 	}
 
@@ -74,7 +72,7 @@ func (w *wiby) Search(ctx context.Context, category search.Category, query strin
 		return nil, err
 	}
 
-	results := make([]search.Result, len(wres))
+	results := make([]Result, len(wres))
 	for i := range results {
 		results[i] = w.toNativeResult(wres[i])
 	}
