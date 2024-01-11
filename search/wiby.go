@@ -3,7 +3,6 @@ package search
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 )
@@ -21,7 +20,7 @@ type wibyResult struct {
 }
 
 var (
-	_ Engine = &wiby{}
+	_ GeneralSearcher = &wiby{}
 )
 
 func init() {
@@ -42,11 +41,7 @@ func (w *wiby) toNativeResult(r wibyResult) Result {
 	}
 }
 
-func (w *wiby) Search(ctx context.Context, category Category, query string, page int) ([]Result, error) {
-	if category != General {
-		return nil, errors.ErrUnsupported
-	}
-
+func (w *wiby) GeneralSearch(ctx context.Context, query string, page int) ([]Result, error) {
 	// Wiby has a native API we can use.
 	// There's probably some encoding/json tomfoolery I could employ so we
 	// don't need an intermediate step, but whatever.

@@ -36,16 +36,16 @@ var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
 	},
 }).ParseFS(tmplFS, "views/*.html"))
 
-func getCategory(q string) (search.Category, bool) {
+func getCategory(q string) (category, bool) {
 	switch q {
 	case "", "g":
-		return search.General, true
+		return General, true
 	case "v":
-		return search.Videos, true
+		return Videos, true
 	case "i":
-		return search.Images, true
+		return Images, true
 	case "n":
-		return search.News, true
+		return News, true
 	}
 
 	return -1, false

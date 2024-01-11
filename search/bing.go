@@ -2,7 +2,6 @@ package search
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
 
@@ -15,6 +14,10 @@ type bing struct {
 	http *HttpClient
 }
 
+var (
+	_ GeneralSearcher = &bing{}
+)
+
 func init() {
 	Add("bing", func(name string, config ...any) (Engine, error) {
 		return &bing{
@@ -24,12 +27,8 @@ func init() {
 	})
 }
 
-// Search attempts to query the engine and returns a number of results.
-func (b *bing) Search(ctx context.Context, category Category, query string, page int) ([]Result, error) {
-	if category != General {
-		return nil, errors.ErrUnsupported
-	}
-
+// GeneralSearch attempts to query the engine and returns a number of results.
+func (b *bing) GeneralSearch(ctx context.Context, query string, page int) ([]Result, error) {
 	form := url.Values{}
 
 	form.Set("q", query)

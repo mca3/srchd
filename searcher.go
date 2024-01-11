@@ -12,6 +12,15 @@ import (
 
 var engines = map[string]search.Engine{}
 
+type category int
+
+const (
+	General category = iota
+	News
+	Videos
+	Images
+)
+
 func findWantedEngines(c *mwr.Ctx) []string {
 	request := strings.TrimSpace(c.Cookie("engines"))
 	if len(request) == 0 {
@@ -53,7 +62,7 @@ func mergeResults(res []search.Result) []search.Result {
 }
 
 // Searches all requested engines.
-func doSearch(c *mwr.Ctx, category search.Category, query string, page int) ([]search.Result, error) {
+func doSearch(c *mwr.Ctx, category category, query string, page int) ([]search.Result, error) {
 	wg := sync.WaitGroup{}
 
 	wantEngines := findWantedEngines(c)
@@ -70,7 +79,36 @@ func doSearch(c *mwr.Ctx, category search.Category, query string, page int) ([]s
 		go func(e search.Engine) {
 			defer wg.Done()
 
-			res, err := e.Search(c.Context(), category, query, page)
+			var res []search.Result
+			var err error
+
+			switch category {
+			case General:
+				eng, ok := e.(search.GeneralSearcher)
+				if !ok {
+					return
+				}
+				res, err = eng.GeneralSearch(c.Context(), query, page)
+			case News:
+				eng, ok := e.(search.NewsSearcher)
+				if !ok {
+					return
+				}
+				res, err = eng.NewsSearch(c.Context(), query, page)
+			case Videos:
+				eng, ok := e.(search.VideoSearcher)
+				if !ok {
+					return
+				}
+				res, err = eng.VideoSearch(c.Context(), query, page)
+			case Images:
+				eng, ok := e.(search.ImageSearcher)
+				if !ok {
+					return
+				}
+				res, err = eng.ImageSearch(c.Context(), query, page)
+			}
+
 			if err != nil {
 				log.Printf("search failed: %v", err)
 			}

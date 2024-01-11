@@ -2,7 +2,6 @@ package search
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -14,6 +13,11 @@ type google struct {
 	name string
 	http *HttpClient
 }
+
+var (
+	_ GeneralSearcher = &google{}
+	_ NewsSearcher    = &google{}
+)
 
 func init() {
 	Add("google", func(name string, config ...any) (Engine, error) {
@@ -97,19 +101,10 @@ func (g *google) parseNews(doc *goquery.Document) ([]Result, error) {
 }
 
 // Search attempts to query the engine and returns a number of results.
-func (g *google) Search(ctx context.Context, category Category, query string, page int) ([]Result, error) {
+func (g *google) GeneralSearch(ctx context.Context, query string, page int) ([]Result, error) {
 	form := url.Values{}
 
 	form.Set("q", query)
-
-	switch category {
-	case General:
-		// This space is intentionally left blank.
-	case News:
-		form.Set("tbm", "nws")
-	default:
-		return nil, errors.ErrUnsupported
-	}
 
 	if page >= 1 {
 		form.Set("start", fmt.Sprint(page*10))
@@ -132,14 +127,38 @@ func (g *google) Search(ctx context.Context, category Category, query string, pa
 		return nil, fmt.Errorf("unable to parse html: %w", err)
 	}
 
-	switch category {
-	case General:
-		return g.parseGeneral(doc)
-	case News:
-		return g.parseNews(doc)
-	default:
-		panic("unreachable")
+	return g.parseGeneral(doc)
+}
+
+// NewsSearch attempts to query the engine and returns a number of results.
+func (g *google) NewsSearch(ctx context.Context, query string, page int) ([]Result, error) {
+	form := url.Values{}
+
+	form.Set("q", query)
+	form.Set("tbm", "nws")
+
+	if page >= 1 {
+		form.Set("start", fmt.Sprint(page*10))
 	}
+
+	ctx, cancel := g.http.Context(ctx)
+	defer cancel()
+
+	res, err := g.http.Get(
+		ctx,
+		fmt.Sprintf("https://google.com/search?%s", form.Encode()),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse html: %w", err)
+	}
+
+	return g.parseNews(doc)
 }
 
 // Ping checks to see if the engine is reachable.

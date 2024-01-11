@@ -2,7 +2,6 @@ package search
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -24,6 +23,10 @@ type ddg struct {
 	vqd   map[string]string
 	vqdMu sync.RWMutex
 }
+
+var (
+	_ GeneralSearcher = &ddg{}
+)
 
 func init() {
 	Add("ddg", func(name string, config ...any) (Engine, error) {
@@ -101,12 +104,8 @@ func decodeDDGHref(href string) string {
 	return v.Get("uddg")
 }
 
-// Search attempts to query the engine and returns a number of results.
-func (d *ddg) Search(ctx context.Context, category Category, query string, page int) ([]Result, error) {
-	if category != General {
-		return nil, errors.ErrUnsupported
-	}
-
+// GeneralSearch attempts to query the engine and returns a number of results.
+func (d *ddg) GeneralSearch(ctx context.Context, query string, page int) ([]Result, error) {
 	form := url.Values{}
 
 	form.Set("q", query)
