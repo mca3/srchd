@@ -26,7 +26,7 @@ func findWantedEngines(c *mwr.Ctx) []string {
 	if len(request) == 0 {
 		return nil
 	}
-	return strings.Split(request, ";")
+	return strings.Split(request, ",")
 }
 
 func normalizeLink(link string) string {
@@ -71,7 +71,7 @@ func doSearch(c *mwr.Ctx, category category, query string, page int) ([]search.R
 
 	for name, eng := range engines {
 		if len(wantEngines) != 0 && !slices.Contains(wantEngines, name) {
-			log.Printf("skipping %q, l = %d", name, len(wantEngines))
+			log.Printf("skipping %q, l = %d, %v", name, len(wantEngines), wantEngines)
 			continue
 		}
 

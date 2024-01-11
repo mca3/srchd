@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -19,6 +20,12 @@ type tmplData struct {
 	Query   string
 	Page    int
 	Results []search.Result
+}
+
+type confData struct {
+	tmplData
+	Engines  []string
+	Selected []string
 }
 
 //go:embed views/*.html
@@ -34,6 +41,7 @@ var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
 	"dec": func(x int) int {
 		return x - 1
 	},
+	"strIn": slices.Contains[[]string],
 }).ParseFS(tmplFS, "views/*.html"))
 
 func getCategory(q string) (category, bool) {
@@ -86,6 +94,19 @@ func main() {
 
 	h.Get("/", func(c *mwr.Ctx) error {
 		return tmpl.ExecuteTemplate(c, "index.html", tmplData{})
+	})
+
+	h.Get("/settings", func(c *mwr.Ctx) error {
+		return tmpl.ExecuteTemplate(c, "settings.html", confData{
+			Engines:  search.Supported(),
+			Selected: findWantedEngines(c),
+		})
+	})
+
+	h.Post("/settings", func(c *mwr.Ctx) error {
+		wantedEngines := c.FormValues("engine")
+		c.SetCookie("engines", strings.Join(wantedEngines, ","))
+		return c.Redirect("/settings")
 	})
 
 	h.Use(func(c *mwr.Ctx) error {
