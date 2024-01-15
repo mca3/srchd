@@ -54,6 +54,9 @@ func (b *bing) GeneralSearch(ctx context.Context, query string, page int) ([]Res
 		return nil, fmt.Errorf("unable to parse html: %w", err)
 	}
 
+	// Remove all of these. Prepends "Web" to every result.
+	doc.Find(`.algoSlug_icon`).Remove()
+
 	elem := doc.Find(`.b_algo`)
 
 	// Bing results are laid out like this:
