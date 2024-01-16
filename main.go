@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"embed"
+	"flag"
 	"html/template"
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -36,6 +38,10 @@ var tmplFS embed.FS
 //go:embed static/*
 var staticFS embed.FS
 
+var (
+	configPath = flag.String("conf", "", "configuration file; ./config.json will be used if it exists")
+)
+
 var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
 	"inc": func(x int) int {
 		return x + 1
@@ -45,7 +51,7 @@ var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
 	},
 	"strIn": slices.Contains[[]string],
 	"timing": func(name string) time.Duration {
-		d, _ := timings[name]
+		d := timings[name]
 		return d
 	},
 }).ParseFS(tmplFS, "views/*.html"))
@@ -66,7 +72,22 @@ func getCategory(q string) (category, bool) {
 }
 
 func main() {
-	for _, v := range search.Supported() {
+	if *configPath == "" {
+		// Try config.json
+		if _, err := os.Stat("./config.json"); err == nil {
+			*configPath = "./config.json"
+		}
+	}
+
+	if *configPath != "" {
+		if err := loadConfig(*configPath); err != nil {
+			log.Fatalf("failed to load config file: %v", err)
+		}
+	}
+
+	for _, v := range cfg.Engines {
+		log.Printf("initializing engine %q", v)
+
 		eng, err := search.New(v, v)
 		if err != nil {
 			panic(err)
@@ -134,5 +155,6 @@ func main() {
 		return err
 	})
 
-	http.ListenAndServe(":8080", h)
+	log.Printf("listening on %s", cfg.Addr)
+	log.Fatal(http.ListenAndServe(cfg.Addr, h))
 }
