@@ -40,7 +40,9 @@ func mergeResults(res []search.Result) []search.Result {
 	firstSeen := map[string]int{}
 
 	for i := 0; i < len(res); i++ {
-		link := normalizeLink(res[i].Link)
+		// Update link. TODO: Move this out of here, maybe.
+		link := rewriteUrl(normalizeLink(res[i].Link))
+		res[i].Link = link
 
 		_, ok := firstSeen[link]
 		if !ok {

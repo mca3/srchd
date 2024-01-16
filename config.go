@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"os"
+	"regexp"
 
 	"git.int21h.xyz/srchd/search"
 )
@@ -10,6 +11,14 @@ import (
 type config struct {
 	Addr    string
 	Engines []string
+	Rewrite []rewriteRule
+}
+
+type rewriteRule struct {
+	Regexp      string `json:"find"`
+	ReplaceWith string `json:"replace"`
+
+	r *regexp.Regexp
 }
 
 var defaultConfig = config{
@@ -26,5 +35,28 @@ func loadConfig(path string) error {
 	}
 	defer h.Close()
 
-	return json.NewDecoder(h).Decode(&cfg)
+	if err := json.NewDecoder(h).Decode(&cfg); err != nil {
+		return err
+	}
+
+	// Load all of the regexp rules
+	for i, v := range cfg.Rewrite {
+		v.r = regexp.MustCompile(v.Regexp)
+		cfg.Rewrite[i] = v
+	}
+
+	return nil
+}
+
+// Attempt to rewrite a URL.
+//
+// Stops on the first rule that matches the URL.
+func rewriteUrl(url string) string {
+	for _, v := range cfg.Rewrite {
+		if v.r.MatchString(url) {
+			return v.r.ReplaceAllString(url, v.ReplaceWith)
+		}
+	}
+
+	return url
 }
