@@ -14,6 +14,7 @@ type config struct {
 	Engines      []string
 	Rewrite      []rewriteRule
 	PingInterval timeDuration `json:"ping_interval"`
+	BaseURL      string       `json:"base_url"`
 }
 
 // timeDuration is a wrapper on time.Duration which allows the decoding of
@@ -31,6 +32,7 @@ type rewriteRule struct {
 
 var defaultConfig = config{
 	Addr:         ":8080",
+	BaseURL:      "http://localhost:8080",
 	Engines:      search.Supported(),
 	PingInterval: timeDuration{time.Minute * 15},
 }

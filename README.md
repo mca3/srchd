@@ -11,7 +11,8 @@ So I set out to replace it, and this is the result.
 Simply use `go build .` to build a srchd binary, or `go run .` to run it out of this repository.
 srchd holds all of the resources it needs to run within itself, so all you would need to move is the binary.
 
-There is no configuration as of now.
+There is some configuration that can be done, but documentation has not been written for it yet.
+See `./config.go`.
 
 ## Search engine support
 

@@ -23,6 +23,7 @@ type tmplData struct {
 	Query   string
 	Page    int
 	Results []search.Result
+	BaseURL string
 }
 
 type confData struct {
@@ -31,7 +32,7 @@ type confData struct {
 	Selected []string
 }
 
-//go:embed views/*.html
+//go:embed views/*.html views/*.xml
 var tmplFS embed.FS
 
 //go:embed static/*
@@ -50,7 +51,7 @@ var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
 	},
 	"strIn":  slices.Contains[[]string],
 	"timing": getTiming,
-}).ParseFS(tmplFS, "views/*.html"))
+}).ParseFS(tmplFS, "views/*.html", "views/*.xml"))
 
 func getCategory(q string) (category, bool) {
 	switch q {
@@ -114,15 +115,28 @@ func main() {
 			Query:   c.Query("q"),
 			Page:    pageNo,
 			Results: res,
+			BaseURL: cfg.BaseURL,
 		})
 	})
 
 	h.Get("/", func(c *mwr.Ctx) error {
-		return tmpl.ExecuteTemplate(c, "index.html", tmplData{})
+		return tmpl.ExecuteTemplate(c, "index.html", tmplData{
+			BaseURL: cfg.BaseURL,
+		})
+	})
+
+	h.Get("/opensearch.xml", func(c *mwr.Ctx) error {
+		return tmpl.ExecuteTemplate(c, "opensearch.xml", tmplData{
+			BaseURL: cfg.BaseURL,
+		})
 	})
 
 	h.Get("/settings", func(c *mwr.Ctx) error {
 		return tmpl.ExecuteTemplate(c, "settings.html", confData{
+			tmplData: tmplData{
+				Title:   "Settings",
+				BaseURL: cfg.BaseURL,
+			},
 			Engines:  search.Supported(),
 			Selected: findWantedEngines(c),
 		})
