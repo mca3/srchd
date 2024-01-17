@@ -13,7 +13,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"time"
 
 	"git.int21h.xyz/mwr"
 	"git.int21h.xyz/srchd/search"
@@ -49,11 +48,8 @@ var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
 	"dec": func(x int) int {
 		return x - 1
 	},
-	"strIn": slices.Contains[[]string],
-	"timing": func(name string) time.Duration {
-		d := timings[name]
-		return d
-	},
+	"strIn":  slices.Contains[[]string],
+	"timing": getTiming,
 }).ParseFS(tmplFS, "views/*.html"))
 
 func getCategory(q string) (category, bool) {
@@ -95,7 +91,7 @@ func main() {
 		engines[v] = eng
 	}
 
-	go findTimings(context.TODO())
+	go pinger(context.TODO())
 
 	h := &mwr.Handler{}
 

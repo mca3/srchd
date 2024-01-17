@@ -4,14 +4,22 @@ import (
 	"encoding/json"
 	"os"
 	"regexp"
+	"time"
 
 	"git.int21h.xyz/srchd/search"
 )
 
 type config struct {
-	Addr    string
-	Engines []string
-	Rewrite []rewriteRule
+	Addr         string
+	Engines      []string
+	Rewrite      []rewriteRule
+	PingInterval timeDuration `json:"ping_interval"`
+}
+
+// timeDuration is a wrapper on time.Duration which allows the decoding of
+// time.Duration values.
+type timeDuration struct {
+	time.Duration
 }
 
 type rewriteRule struct {
@@ -22,8 +30,9 @@ type rewriteRule struct {
 }
 
 var defaultConfig = config{
-	Addr:    ":8080",
-	Engines: search.Supported(),
+	Addr:         ":8080",
+	Engines:      search.Supported(),
+	PingInterval: timeDuration{time.Minute * 15},
 }
 
 var cfg = defaultConfig
@@ -59,4 +68,16 @@ func rewriteUrl(url string) string {
 	}
 
 	return url
+}
+
+func (t *timeDuration) UnmarshalJSON(data []byte) error {
+	var err error
+
+	str := ""
+	if err = json.Unmarshal(data, &str); err != nil {
+		return err
+	}
+
+	t.Duration, err = time.ParseDuration(str)
+	return err
 }
