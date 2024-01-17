@@ -19,7 +19,7 @@ func findTimings(ctx context.Context) {
 			then := time.Now()
 			if err := eng.Ping(ctx); err != nil {
 				timings[name] = 0
-				log.Printf("timing for %s failed: %v", err)
+				log.Printf("timing for %s failed: %v", name, err)
 				return
 			}
 
