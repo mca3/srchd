@@ -108,8 +108,6 @@ func main() {
 			return err
 		}
 
-		log.Printf("found %d results for %q", len(res), c.Query("q"))
-
 		return tmpl.ExecuteTemplate(c, "search.html", tmplData{
 			Title:   c.Query("q"),
 			Query:   c.Query("q"),

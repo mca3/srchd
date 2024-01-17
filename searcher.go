@@ -73,7 +73,6 @@ func doSearch(c *mwr.Ctx, category category, query string, page int) ([]search.R
 
 	for name, eng := range engines {
 		if len(wantEngines) != 0 && !slices.Contains(wantEngines, name) {
-			log.Printf("skipping %q, l = %d, %v", name, len(wantEngines), wantEngines)
 			continue
 		}
 
