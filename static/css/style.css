@@ -51,12 +51,13 @@ nav .name:hover {
 
 .result > a {
 	text-decoration: none;
-	display: inline-block;
+	color: unset;
 }
 
 .result .title {
 	margin: 0;
 	text-decoration: underline;
+	color: blue;
 }
 
 .result .link {
