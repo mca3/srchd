@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"slices"
+	"sort"
 	"strings"
 	"sync"
 
@@ -44,10 +45,14 @@ func mergeResults(res []search.Result) []search.Result {
 		link := rewriteUrl(normalizeLink(res[i].Link))
 		res[i].Link = link
 
-		_, ok := firstSeen[link]
+		idx, ok := firstSeen[link]
 		if !ok {
 			// First occurrence.
 			firstSeen[link] = i
+
+			if res[i].Score == 0 {
+				res[i].Score = 1
+			}
 			continue
 		}
 
@@ -55,9 +60,20 @@ func mergeResults(res []search.Result) []search.Result {
 		res[i], res[len(res)-1] = res[len(res)-1], res[i]
 		res = res[:len(res)-1]
 
+		// Increment the score.
+		// This is for sorting; results seen several times will appear
+		// higher in the search results.
+		res[idx].Score++
+
 		// Decrement i so we can try the next element.
 		i--
 	}
+
+	// Sort based upon the score.
+	sort.Slice(res, func(i, j int) bool {
+		// > is used so the results are descending and not ascending.
+		return res[i].Score > res[j].Score
+	})
 
 	// Return the (modified) slice.
 	return res

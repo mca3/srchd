@@ -62,6 +62,10 @@ type Result struct {
 
 	// Source holds an identifier for this search engine.
 	Source string
+
+	// Score holds the score for this result.
+	// This shouldn't be filled by engines themselves.
+	Score float64
 }
 
 var engines = map[string]func(name string, config ...map[string]any) (Engine, error){}
