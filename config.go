@@ -39,9 +39,7 @@ var defaultConfig = config{
 	PingInterval: timeDuration{time.Minute * 15},
 
 	EngineConfig: map[string]map[string]any{
-		"default": map[string]any{
-			"prefer_ipv6": true,
-		},
+		"default": search.DefaultConfig,
 	},
 }
 

@@ -24,10 +24,12 @@ var (
 )
 
 func init() {
-	Add("wiby", func(name string, config ...any) (Engine, error) {
+	Add("wiby", func(name string, config ...map[string]any) (Engine, error) {
+		cfg := getConfig(config)
+
 		return &wiby{
 			name: name,
-			http: &HttpClient{},
+			http: newHttpClient(cfg),
 		}, nil
 	})
 }

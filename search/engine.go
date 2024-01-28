@@ -64,12 +64,12 @@ type Result struct {
 	Source string
 }
 
-var engines = map[string]func(name string, config ...any) (Engine, error){}
+var engines = map[string]func(name string, config ...map[string]any) (Engine, error){}
 
 // Add adds a search engine to the list of supported engines.
 //
 // If a name is already in use, Add panics.
-func Add(name string, fn func(name string, config ...any) (Engine, error)) {
+func Add(name string, fn func(name string, config ...map[string]any) (Engine, error)) {
 	if _, ok := engines[name]; ok {
 		panic(fmt.Sprintf("name %q already taken", name))
 	}
@@ -82,7 +82,7 @@ func Add(name string, fn func(name string, config ...any) (Engine, error)) {
 //
 // If an engine does not exist, Engine will be nil and error will be
 // [errors.ErrUnsupported].
-func New(engine, name string, config ...any) (Engine, error) {
+func New(engine, name string, config ...map[string]any) (Engine, error) {
 	fn, ok := engines[engine]
 	if !ok {
 		return nil, errors.ErrUnsupported

@@ -29,10 +29,12 @@ var (
 )
 
 func init() {
-	Add("ddg", func(name string, config ...any) (Engine, error) {
+	Add("ddg", func(name string, config ...map[string]any) (Engine, error) {
+		cfg := getConfig(config)
+
 		return &ddg{
 			name: name,
-			http: &HttpClient{},
+			http: newHttpClient(cfg),
 			vqd:  map[string]string{},
 		}, nil
 	})

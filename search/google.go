@@ -20,10 +20,12 @@ var (
 )
 
 func init() {
-	Add("google", func(name string, config ...any) (Engine, error) {
+	Add("google", func(name string, config ...map[string]any) (Engine, error) {
+		cfg := getConfig(config)
+
 		return &google{
 			name: name,
-			http: &HttpClient{},
+			http: newHttpClient(cfg),
 		}, nil
 	})
 }

@@ -22,8 +22,6 @@ import (
 type HttpClient struct {
 	// Timeout is the maximum amount of time to wait for the request to
 	// complete.
-	//
-	// If Timeout is zero, then Timeout will default to [DefaultTimeout].
 	Timeout time.Duration
 
 	// UserAgent holds the value of the User-Agent header of HTTP requests.
@@ -54,12 +52,6 @@ type decompReader struct {
 	c io.Closer
 	r io.Reader
 }
-
-// Default timeout for HTTP requests.
-const DefaultTimeout = time.Second * 10
-
-// Default user agent for HTTP requests.
-const DefaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.3"
 
 // TODO: This is really horrible.
 const debug = true
@@ -117,19 +109,11 @@ func (h *HttpClient) ensureReady() {
 
 // Creates a new context from a parent context.
 func (h *HttpClient) Context(ctx context.Context) (context.Context, context.CancelFunc) {
-	if h.Timeout == 0 {
-		return context.WithTimeout(ctx, DefaultTimeout)
-	}
-
 	return context.WithTimeout(ctx, h.Timeout)
 }
 
 // Get a non-empty user agent.
 func (h *HttpClient) ua() string {
-	if h.UserAgent == "" {
-		return DefaultUserAgent
-	}
-
 	return h.UserAgent
 }
 

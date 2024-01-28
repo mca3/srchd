@@ -28,10 +28,7 @@ func TestDDGPageParams(t *testing.T) {
 }
 
 func TestDDGSearch(t *testing.T) {
-	d := &ddg{
-		http: &HttpClient{},
-		vqd:  map[string]string{},
-	}
+	d := mustInit("ddg", "ddg").(GeneralSearcher)
 
 	res, err := d.GeneralSearch(context.Background(), "hello world", 0)
 	if err != nil {

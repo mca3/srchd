@@ -6,9 +6,7 @@ import (
 )
 
 func TestBingSearch(t *testing.T) {
-	d := &bing{
-		http: &HttpClient{},
-	}
+	d := mustInit("bing", "bing").(GeneralSearcher)
 
 	res, err := d.GeneralSearch(context.Background(), "hello world", 0)
 	if err != nil {

@@ -6,9 +6,7 @@ import (
 )
 
 func TestGoogleSearch(t *testing.T) {
-	d := &google{
-		http: &HttpClient{},
-	}
+	d := mustInit("google", "google").(GeneralSearcher)
 
 	res, err := d.GeneralSearch(context.Background(), "hello world", 0)
 	if err != nil {

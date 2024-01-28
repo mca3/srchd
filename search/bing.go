@@ -19,10 +19,12 @@ var (
 )
 
 func init() {
-	Add("bing", func(name string, config ...any) (Engine, error) {
+	Add("bing", func(name string, config ...map[string]any) (Engine, error) {
+		cfg := getConfig(config)
+
 		return &bing{
 			name: name,
-			http: &HttpClient{},
+			http: newHttpClient(cfg),
 		}, nil
 	})
 }
