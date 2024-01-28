@@ -2,12 +2,12 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"slices"
 	"sort"
 	"strings"
 	"sync"
 
-	"git.sr.ht/~cmcevoy/mwr"
 	"git.sr.ht/~cmcevoy/srchd/search"
 )
 
@@ -22,12 +22,12 @@ const (
 	Images
 )
 
-func findWantedEngines(c *mwr.Ctx) []string {
-	request := strings.TrimSpace(c.Cookie("engines"))
-	if len(request) == 0 {
+func findWantedEngines(r *http.Request) []string {
+	cookie, err := r.Cookie("engines")
+	if err != nil {
 		return nil
 	}
-	return strings.Split(request, ",")
+	return strings.Split(strings.TrimSpace(cookie.Value), ",")
 }
 
 func normalizeLink(link string) string {
@@ -80,10 +80,10 @@ func mergeResults(res []search.Result) []search.Result {
 }
 
 // Searches all requested engines.
-func doSearch(c *mwr.Ctx, category category, query string, page int) ([]search.Result, error) {
+func doSearch(r *http.Request, category category, query string, page int) ([]search.Result, error) {
 	wg := sync.WaitGroup{}
 
-	wantEngines := findWantedEngines(c)
+	wantEngines := findWantedEngines(r)
 	results := []search.Result{}
 	mu := sync.Mutex{}
 
@@ -105,25 +105,25 @@ func doSearch(c *mwr.Ctx, category category, query string, page int) ([]search.R
 				if !ok {
 					return
 				}
-				res, err = eng.GeneralSearch(c.Context(), query, page)
+				res, err = eng.GeneralSearch(r.Context(), query, page)
 			case News:
 				eng, ok := e.(search.NewsSearcher)
 				if !ok {
 					return
 				}
-				res, err = eng.NewsSearch(c.Context(), query, page)
+				res, err = eng.NewsSearch(r.Context(), query, page)
 			case Videos:
 				eng, ok := e.(search.VideoSearcher)
 				if !ok {
 					return
 				}
-				res, err = eng.VideoSearch(c.Context(), query, page)
+				res, err = eng.VideoSearch(r.Context(), query, page)
 			case Images:
 				eng, ok := e.(search.ImageSearcher)
 				if !ok {
 					return
 				}
-				res, err = eng.ImageSearch(c.Context(), query, page)
+				res, err = eng.ImageSearch(r.Context(), query, page)
 			}
 
 			if err != nil {

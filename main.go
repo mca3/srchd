@@ -14,8 +14,8 @@ import (
 	"strconv"
 	"strings"
 
-	"git.sr.ht/~cmcevoy/mwr"
 	"git.sr.ht/~cmcevoy/srchd/search"
+	"github.com/go-chi/chi/v5"
 )
 
 type tmplData struct {
@@ -94,74 +94,92 @@ func main() {
 
 	go pinger(context.TODO())
 
-	h := &mwr.Handler{}
+	h := chi.NewRouter()
 
-	h.Get("/search", func(c *mwr.Ctx) error {
-		pageNo, _ := strconv.Atoi(c.Query("p", "0"))
-		category, ok := getCategory(c.Query("c"))
+	h.Get("/search", func(w http.ResponseWriter, r *http.Request) {
+		pageNo, _ := strconv.Atoi(r.URL.Query().Get("p"))
+		category, ok := getCategory(r.URL.Query().Get("c"))
 		if !ok {
-			return c.Status(400).SendString("invalid category") // TODO
+			http.Error(w, "invalid category", 400)
+			return
 		}
 
-		res, err := doSearch(c, category, c.Query("q"), pageNo)
+		res, err := doSearch(r, category, r.URL.Query().Get("q"), pageNo)
 		if err != nil {
-			return err
+			http.Error(w, err.Error(), 500) // TODO
+			return
 		}
 
-		return tmpl.ExecuteTemplate(c, "search.html", tmplData{
-			Title:   c.Query("q"),
-			Query:   c.Query("q"),
+		tmpl.ExecuteTemplate(w, "search.html", tmplData{
+			Title:   r.URL.Query().Get("q"),
+			Query:   r.URL.Query().Get("q"),
 			Page:    pageNo,
 			Results: res,
 			BaseURL: cfg.BaseURL,
 		})
 	})
 
-	h.Get("/", func(c *mwr.Ctx) error {
-		return tmpl.ExecuteTemplate(c, "index.html", tmplData{
+	h.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		tmpl.ExecuteTemplate(w, "index.html", tmplData{
 			BaseURL: cfg.BaseURL,
 		})
 	})
 
-	h.Get("/opensearch.xml", func(c *mwr.Ctx) error {
-		return tmpl.ExecuteTemplate(c, "opensearch.xml", tmplData{
+	h.Get("/opensearch.xml", func(w http.ResponseWriter, r *http.Request) {
+		tmpl.ExecuteTemplate(w, "opensearch.xml", tmplData{
 			BaseURL: cfg.BaseURL,
 		})
 	})
 
-	h.Get("/settings", func(c *mwr.Ctx) error {
-		return tmpl.ExecuteTemplate(c, "settings.html", confData{
+	h.Get("/settings", func(w http.ResponseWriter, r *http.Request) {
+		tmpl.ExecuteTemplate(w, "settings.html", confData{
 			tmplData: tmplData{
 				Title:   "Settings",
 				BaseURL: cfg.BaseURL,
 			},
 			Engines:  search.Supported(),
-			Selected: findWantedEngines(c),
+			Selected: findWantedEngines(r),
 		})
 	})
 
-	h.Post("/settings", func(c *mwr.Ctx) error {
-		wantedEngines := c.FormValues("engine")
-		c.SetCookie("engines", strings.Join(wantedEngines, ","))
-		return c.Redirect("/settings")
+	h.Post("/settings", func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "invalid form submitted", 400)
+			return
+		}
+
+		wantedEngines, ok := r.Form["engine"]
+		if !ok {
+			http.Error(w, "invalid form submitted", 400)
+			return
+		}
+
+		http.SetCookie(w, &http.Cookie{
+			Name:  "engines",
+			Value: strings.Join(wantedEngines, ","),
+		})
+		http.Redirect(w, r, "/settings", http.StatusFound)
 	})
 
-	h.Use(func(c *mwr.Ctx) error {
-		fp := filepath.Join("static", c.URL().EscapedPath())
+	staticHandler := func(w http.ResponseWriter, r *http.Request) {
+		fp := filepath.Join("static", r.URL.EscapedPath())
 		h, err := staticFS.Open(fp)
 		if err != nil {
-			return c.Status(404).SendString("404 not found")
+			http.Error(w, "not found", 404)
+			return
 		}
 		defer h.Close()
 
 		// Hack
 		if strings.HasSuffix(fp, ".css") {
-			c.Set("Content-Type", "text/css")
+			w.Header().Set("Content-Type", "text/css")
 		}
 
-		_, err = io.Copy(c, h)
-		return err
-	})
+		io.Copy(w, h)
+	}
+
+	h.Get("/css/*", staticHandler)
+	h.Get("/robots.txt", staticHandler)
 
 	log.Printf("listening on %s", cfg.Addr)
 	log.Fatal(http.ListenAndServe(cfg.Addr, h))
