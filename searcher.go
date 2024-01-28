@@ -6,8 +6,8 @@ import (
 	"strings"
 	"sync"
 
-	"git.int21h.xyz/mwr"
-	"git.int21h.xyz/srchd/search"
+	"git.sr.ht/~cmcevoy/mwr"
+	"git.sr.ht/~cmcevoy/srchd/search"
 )
 
 var engines = map[string]search.Engine{}

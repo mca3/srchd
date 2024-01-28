@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"git.int21h.xyz/srchd/search"
+	"git.sr.ht/~cmcevoy/srchd/search"
 )
 
 var timings = map[string]time.Duration{}

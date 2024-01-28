@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"time"
 
-	"git.int21h.xyz/srchd/search"
+	"git.sr.ht/~cmcevoy/srchd/search"
 )
 
 type config struct {
@@ -15,6 +15,8 @@ type config struct {
 	Rewrite      []rewriteRule
 	PingInterval timeDuration `json:"ping_interval"`
 	BaseURL      string       `json:"base_url"`
+
+	EngineConfig map[string]map[string]any `json:"engine_config"`
 }
 
 // timeDuration is a wrapper on time.Duration which allows the decoding of
@@ -35,6 +37,12 @@ var defaultConfig = config{
 	BaseURL:      "http://localhost:8080",
 	Engines:      search.Supported(),
 	PingInterval: timeDuration{time.Minute * 15},
+
+	EngineConfig: map[string]map[string]any{
+		"default": map[string]any{
+			"prefer_ipv6": true,
+		},
+	},
 }
 
 var cfg = defaultConfig
@@ -82,4 +90,32 @@ func (t *timeDuration) UnmarshalJSON(data []byte) error {
 
 	t.Duration, err = time.ParseDuration(str)
 	return err
+}
+
+// Attempts to initialize an engine.
+//
+// Uses the engine's configuration as specified in the configuration, and also
+// merges in the default config.
+func initializeEngine(driver, name string) (search.Engine, error) {
+	engineCfg, ok := cfg.EngineConfig[name]
+	if !ok {
+		engineCfg = cfg.EngineConfig["default"]
+
+		// No need to merge in the default config.
+		goto done
+	}
+
+	// Set all of the values of the default configuration.
+	for k, v := range cfg.EngineConfig["default"] {
+		_, ok := engineCfg[k]
+		if ok {
+			// Don't overwrite.
+			continue
+		}
+
+		engineCfg[k] = v
+	}
+
+done:
+	return search.New(driver, name, engineCfg)
 }

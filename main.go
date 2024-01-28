@@ -14,8 +14,8 @@ import (
 	"strconv"
 	"strings"
 
-	"git.int21h.xyz/mwr"
-	"git.int21h.xyz/srchd/search"
+	"git.sr.ht/~cmcevoy/mwr"
+	"git.sr.ht/~cmcevoy/srchd/search"
 )
 
 type tmplData struct {
@@ -85,7 +85,7 @@ func main() {
 	for _, v := range cfg.Engines {
 		log.Printf("initializing engine %q", v)
 
-		eng, err := search.New(v, v)
+		eng, err := initializeEngine(v, v)
 		if err != nil {
 			panic(err)
 		}

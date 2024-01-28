@@ -1,9 +1,9 @@
-module git.int21h.xyz/srchd
+module git.sr.ht/~cmcevoy/srchd
 
 go 1.21.1
 
 require (
-	git.int21h.xyz/mwr v0.0.0-20231213212443-503d1fba1fc8
+	git.sr.ht/~cmcevoy/mwr v0.0.0-20240127162415-4b8c2ad852a1
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/andybalholm/brotli v1.0.6
 )
