@@ -3,6 +3,25 @@
 {{template "nav.html" .}}
 
 <main>
+	{{if gt (len .Errors) 0}}
+	<details id="errors">
+		<summary>Search error on <b>{{len .Errors}}</b> engine{{if gt (len .Errors) 1}}s{{end}}</summary>
+
+		<p>The following engines failed to perform a search:</p>
+
+		<ul>
+			{{range $name, $err := .Errors}}
+			{{if $err}}<li><b>{{$name}}</b>: <code>{{$err.Error}}</code></li>{{end}}
+			{{end}}
+		</ul>
+
+		<p>
+			Some errors are temporary due to the nature of srchd.
+			If these errors are persistent however, you should disable the engine{{if gt (len .Errors) 1}}s{{end}} and report a bug if other instances are affected.
+		</p>
+	</details>
+	{{end}}
+
 	{{range .Results}}
 	<div class="result">
 		<a href="{{.Link}}" rel="noreferrer">

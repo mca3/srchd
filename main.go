@@ -23,6 +23,7 @@ type tmplData struct {
 	Query   string
 	Page    int
 	Results []search.Result
+	Errors  map[string]error
 	BaseURL string
 }
 
@@ -68,6 +69,12 @@ func getCategory(q string) (category, bool) {
 	return -1, false
 }
 
+func templateExecute(out io.Writer, name string, data any) {
+	if err := tmpl.ExecuteTemplate(out, name, data); err != nil {
+		log.Printf("executing template %q failed: %v", name, err)
+	}
+}
+
 func main() {
 	if *configPath == "" {
 		// Try config.json
@@ -104,35 +111,36 @@ func main() {
 			return
 		}
 
-		res, err := doSearch(r, category, r.URL.Query().Get("q"), pageNo)
+		res, errors, err := doSearch(r, category, r.URL.Query().Get("q"), pageNo)
 		if err != nil {
 			http.Error(w, err.Error(), 500) // TODO
 			return
 		}
 
-		tmpl.ExecuteTemplate(w, "search.html", tmplData{
+		templateExecute(w, "search.html", tmplData{
 			Title:   r.URL.Query().Get("q"),
 			Query:   r.URL.Query().Get("q"),
 			Page:    pageNo,
 			Results: res,
+			Errors:  errors,
 			BaseURL: cfg.BaseURL,
 		})
 	})
 
 	h.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		tmpl.ExecuteTemplate(w, "index.html", tmplData{
+		templateExecute(w, "index.html", tmplData{
 			BaseURL: cfg.BaseURL,
 		})
 	})
 
 	h.Get("/opensearch.xml", func(w http.ResponseWriter, r *http.Request) {
-		tmpl.ExecuteTemplate(w, "opensearch.xml", tmplData{
+		templateExecute(w, "opensearch.xml", tmplData{
 			BaseURL: cfg.BaseURL,
 		})
 	})
 
 	h.Get("/settings", func(w http.ResponseWriter, r *http.Request) {
-		tmpl.ExecuteTemplate(w, "settings.html", confData{
+		templateExecute(w, "settings.html", confData{
 			tmplData: tmplData{
 				Title:   "Settings",
 				BaseURL: cfg.BaseURL,

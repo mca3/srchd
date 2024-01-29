@@ -80,10 +80,11 @@ func mergeResults(res []search.Result) []search.Result {
 }
 
 // Searches all requested engines.
-func doSearch(r *http.Request, category category, query string, page int) ([]search.Result, error) {
+func doSearch(r *http.Request, category category, query string, page int) ([]search.Result, map[string]error, error) {
 	wg := sync.WaitGroup{}
 
 	wantEngines := findWantedEngines(r)
+	var errors map[string]error
 	results := []search.Result{}
 	mu := sync.Mutex{}
 
@@ -93,7 +94,7 @@ func doSearch(r *http.Request, category category, query string, page int) ([]sea
 		}
 
 		wg.Add(1)
-		go func(e search.Engine) {
+		go func(name string, e search.Engine) {
 			defer wg.Done()
 
 			var res []search.Result
@@ -126,18 +127,25 @@ func doSearch(r *http.Request, category category, query string, page int) ([]sea
 				res, err = eng.ImageSearch(r.Context(), query, page)
 			}
 
-			if err != nil {
-				log.Printf("search failed: %v", err)
-			}
-
 			mu.Lock()
 			defer mu.Unlock()
 
+			if err != nil {
+				if errors == nil {
+					// Lazily initialize the map.
+					// In most cases, there will be no errors so there's no point in allocating it.
+					errors = map[string]error{}
+				}
+				errors[name] = err
+				log.Printf("search failed: %v", err)
+				return
+			}
+
 			results = append(results, res...)
-		}(eng)
+		}(name, eng)
 	}
 
 	wg.Wait()
 
-	return mergeResults(results), nil
+	return mergeResults(results), errors, nil
 }

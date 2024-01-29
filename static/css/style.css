@@ -41,6 +41,10 @@ main {
 	margin: 1em auto;
 }
 
+p:last-child {
+	margin-bottom: 0;
+}
+
 a:link, .result .title {
 	color: #076678;
 }
@@ -102,6 +106,12 @@ a:visited:hover, .result > a:visited:hover .title {
 	box-sizing: border-box;
 	width: 100%;
 	border-top: 1px solid #928374;
+}
+
+#errors {
+	background: #fb4934;
+	border: 1px solid #9d0006;
+	padding: 0.5em;
 }
 
 .result {
@@ -169,6 +179,11 @@ a:visited:hover, .result > a:visited:hover .title {
 
 	#search input[type="submit"] {
 		background: #282828;
+	}
+
+	#errors {
+		background: #cc241d;
+		border: 1px solid #fb4934;
 	}
 
 	.result .title {
