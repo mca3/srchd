@@ -13,13 +13,13 @@
 		</a>
 	</div>
 	{{end}}
-</main>
 
-<div id="paginator">
-	{{if gt .Page 1}}<a href="/search?q={{.Query}}">&lt;&lt;</a>{{end}}
-	{{if gt .Page 0}}<a href="/search?q={{.Query}}{{if ne .Page 1}}&p={{dec .Page}}{{end}}">&lt;</a>{{end}}
-	<a>{{.Page}}</a>
-	<a href="/search?q={{.Query}}&p={{inc .Page}}">&gt;</a>
-</div>
+	<div id="paginator">
+		{{if gt .Page 1}}<a href="/search?q={{.Query}}">&lt;&lt;</a>{{end}}
+		{{if gt .Page 0}}<a href="/search?q={{.Query}}{{if ne .Page 1}}&p={{dec .Page}}{{end}}">&lt;</a>{{end}}
+		<a>{{.Page}}</a>
+		<a href="/search?q={{.Query}}&p={{inc .Page}}">&gt;</a>
+	</div>
+</main>
 
 {{template "footer" .}}
