@@ -60,11 +60,16 @@ type Result struct {
 	// Link is the URL of this result.
 	Link string
 
-	// Source holds an identifier for this search engine.
-	Source string
+	// Sources holds all engine names that had this result.
+	//
+	// Engines must only populate this with their name.
+	// Results are merged and this field will be populated based upon what
+	// engines return a result similar to this one.
+	Sources []string
 
 	// Score holds the score for this result.
-	// This shouldn't be filled by engines themselves.
+	//
+	// Engines should not fill this value.
 	Score float64
 }
 

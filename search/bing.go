@@ -75,7 +75,7 @@ func (b *bing) GeneralSearch(ctx context.Context, query string, page int) ([]Res
 		v.Link, _ = title.Attr("href")
 		v.Title = title.Text()
 		v.Description = e.Find("div > p").Text()
-		v.Source = b.name
+		v.Sources = []string{b.name}
 
 		results[i] = v
 	}

@@ -189,7 +189,7 @@ func (d *ddg) GeneralSearch(ctx context.Context, query string, page int) ([]Resu
 
 		v.Title = link.Text()
 		v.Description = strings.TrimSpace(desc.Text())
-		v.Source = d.name
+		v.Sources = []string{d.name}
 
 		results = append(results, v)
 	}

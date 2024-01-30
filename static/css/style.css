@@ -143,7 +143,12 @@ a:visited:hover, .result > a:visited:hover .title {
 	color: #7c6f64;
 	float: right;
 	font-weight: bold;
+	margin-left: 0.5em;
+}
+
+.result .footer {
 	font-size: 0.8em;
+	display: block;
 }
 
 @media (prefers-color-scheme: dark) {

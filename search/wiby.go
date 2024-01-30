@@ -39,7 +39,7 @@ func (w *wiby) toNativeResult(r wibyResult) Result {
 		Link:        r.URL,
 		Title:       r.Title,
 		Description: r.Snippet,
-		Source:      w.name,
+		Sources:     []string{w.name},
 	}
 }
 

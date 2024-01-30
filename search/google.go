@@ -62,7 +62,7 @@ func (g *google) parseGeneral(doc *goquery.Document) ([]Result, error) {
 		v.Title = title.Text()
 		v.Link, _ = link.Attr("href")
 		v.Description = strings.TrimSpace(desc.Text())
-		v.Source = g.name
+		v.Sources = []string{g.name}
 
 		results[i] = v
 	}
@@ -94,7 +94,7 @@ func (g *google) parseNews(doc *goquery.Document) ([]Result, error) {
 
 		v.Title = title.Text()
 		v.Description = strings.TrimSpace(desc.Text())
-		v.Source = g.name
+		v.Sources = []string{g.name}
 
 		results[i] = v
 	}

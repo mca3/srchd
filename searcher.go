@@ -56,6 +56,14 @@ func mergeResults(res []search.Result) []search.Result {
 			continue
 		}
 
+		// Add in the engine source(s).
+		// Technically there's only supposed to be one, so this may be unnecessary.
+		for _, name := range res[i].Sources {
+			if !slices.Contains(res[idx].Sources, name) {
+				res[idx].Sources = append(res[idx].Sources, name)
+			}
+		}
+
 		// Swap with the last element and shrink the slice.
 		res[i], res[len(res)-1] = res[len(res)-1], res[i]
 		res = res[:len(res)-1]
@@ -136,8 +144,10 @@ func doSearch(r *http.Request, category category, query string, page int) ([]sea
 					// In most cases, there will be no errors so there's no point in allocating it.
 					errors = map[string]error{}
 				}
+
 				errors[name] = err
-				log.Printf("search failed: %v", err)
+				log.Printf("searching %q failed: %v", name, err)
+
 				return
 			}
 
