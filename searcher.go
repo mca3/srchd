@@ -35,6 +35,28 @@ func normalizeLink(link string) string {
 	return strings.TrimSuffix(link, "/")
 }
 
+// Calculates the multiplier of the result score.
+func calculateWeight(res search.Result) float64 {
+	sum := 0.0
+
+	for _, name := range res.Sources {
+		val, ok := search.GetConfigValue[float64](cfg.EngineConfig[name], "weight")
+		if !ok {
+			val = 1
+		}
+
+		sum += val
+	}
+
+	return sum
+}
+
+// Calculates the score to sort against.
+func calculateSortingScore(res search.Result) float64 {
+	weight := calculateWeight(res)
+	return weight * res.Score
+}
+
 // Drops result entries if the link was already seen earlier in the result slice.
 func mergeResults(res []search.Result) []search.Result {
 	// Track the first time we see a link and move stuff around.
@@ -80,7 +102,7 @@ func mergeResults(res []search.Result) []search.Result {
 	// Sort based upon the score.
 	sort.Slice(res, func(i, j int) bool {
 		// > is used so the results are descending and not ascending.
-		return res[i].Score > res[j].Score
+		return calculateSortingScore(res[i]) > calculateSortingScore(res[j])
 	})
 
 	// Return the (modified) slice.
