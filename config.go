@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"net/url"
 	"os"
 	"regexp"
 	"time"
@@ -27,6 +29,7 @@ type timeDuration struct {
 
 type rewriteRule struct {
 	Regexp      string `json:"find"`
+	Hostname    string `json:"hostname"`
 	ReplaceWith string `json:"replace"`
 
 	r *regexp.Regexp
@@ -58,8 +61,14 @@ func loadConfig(path string) error {
 
 	// Load all of the regexp rules
 	for i, v := range cfg.Rewrite {
-		v.r = regexp.MustCompile(v.Regexp)
-		cfg.Rewrite[i] = v
+		if v.Regexp != "" && v.Hostname != "" {
+			return fmt.Errorf("regexp and hostname defined in rule")
+		}
+
+		if v.Hostname == "" {
+			v.r = regexp.MustCompile(v.Regexp)
+			cfg.Rewrite[i] = v
+		}
 	}
 
 	return nil
@@ -68,14 +77,38 @@ func loadConfig(path string) error {
 // Attempt to rewrite a URL.
 //
 // Stops on the first rule that matches the URL.
-func rewriteUrl(url string) string {
+func rewriteUrl(in string) string {
+	var parsedUrl *url.URL
+	var err error
 	for _, v := range cfg.Rewrite {
-		if v.r.MatchString(url) {
-			return v.r.ReplaceAllString(url, v.ReplaceWith)
+		if v.r != nil {
+			// v.r != nil when v.Hostname == ""
+
+			if v.r.MatchString(in) {
+				return v.r.ReplaceAllString(in, v.ReplaceWith)
+			}
+		} else if err == nil { // v.Hostname != ""
+			// Note that err == nil is checked because we lazily
+			// initialize the URL, and we get err for free if we
+			// failed to parse the URL.
+
+			// Lazily parse the URL.
+			if parsedUrl == nil {
+				parsedUrl, err = url.Parse(in)
+				if err != nil {
+					continue
+				}
+			}
+
+			// Swap out the hostname.
+			if parsedUrl.Host == v.Hostname {
+				parsedUrl.Host = v.ReplaceWith
+				return parsedUrl.String()
+			}
 		}
 	}
 
-	return url
+	return in
 }
 
 func (t *timeDuration) UnmarshalJSON(data []byte) error {
