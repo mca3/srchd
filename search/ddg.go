@@ -113,11 +113,27 @@ func decodeDDGHref(href string) string {
 	return v.Get("uddg")
 }
 
+// Escapes bangs when they appear in the query.
+func encodeDDGQuery(query string) string {
+	if !strings.ContainsRune(query, '!') {
+		return query
+	}
+
+	toks := strings.Split(query, " ")
+	for i, tok := range toks {
+		if strings.HasPrefix(tok, "!") {
+			toks[i] = "'" + tok + "'"
+		}
+	}
+
+	return strings.Join(toks, " ")
+}
+
 // GeneralSearch attempts to query the engine and returns a number of results.
 func (d *ddg) GeneralSearch(ctx context.Context, query string, page int) ([]Result, error) {
 	form := url.Values{}
 
-	form.Set("q", query)
+	form.Set("q", encodeDDGQuery(query))
 	if vqd := d.lookupVqd(query); vqd != "" {
 		form.Set("vqd", vqd)
 	}
