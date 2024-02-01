@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html"
 	"net/url"
 )
 
@@ -35,10 +36,14 @@ func init() {
 }
 
 func (w *wiby) toNativeResult(r wibyResult) Result {
+	// wiby escapes all text for direct inclusion in HTML, presumably.
+	// Go's text/template does this for us, so text should be unescaped
+	// here to prevent "&amp;" and other similar escapes from appearing as
+	// text in the results page.
 	return Result{
-		Link:        r.URL,
-		Title:       r.Title,
-		Description: r.Snippet,
+		Link:        html.UnescapeString(r.URL),
+		Title:       html.UnescapeString(r.Title),
+		Description: html.UnescapeString(r.Snippet),
 		Sources:     []string{w.name},
 	}
 }
