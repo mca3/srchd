@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"slices"
@@ -22,12 +23,37 @@ const (
 	Images
 )
 
+// Determines the default set of requested engines from the request.
 func findWantedEngines(r *http.Request) []string {
 	cookie, err := r.Cookie("engines")
 	if err != nil {
 		return nil
 	}
 	return strings.Split(strings.TrimSpace(cookie.Value), ",")
+}
+
+// Handles the ':' search operator which specifies specific engines to search.
+func processOperators(query string) (requestedEngines []string, newQuery string) {
+	if !strings.ContainsRune(query, ':') {
+		// No colon operator, so nothing to change.
+		return nil, query
+	}
+
+	toks := strings.Split(query, " ")
+
+	for i, tok := range toks {
+		if strings.HasPrefix(tok, "\\:") {
+			toks[i] = tok[1:] // Remove the backslash
+		} else if strings.HasPrefix(tok, ":") {
+			// Just set it to a blank string.
+			// This should change nothing with a search query.
+			toks[i] = ""
+			requestedEngines = append(requestedEngines, tok[1:])
+		}
+	}
+
+	newQuery = strings.TrimSpace(strings.Join(toks, " "))
+	return
 }
 
 func normalizeLink(link string) string {
@@ -110,10 +136,19 @@ func mergeResults(res []search.Result) []search.Result {
 }
 
 // Searches all requested engines.
-func doSearch(r *http.Request, category category, query string, page int) ([]search.Result, map[string]error, error) {
+func doSearch(r *http.Request, category category, requestQuery string, page int) ([]search.Result, map[string]error, error) {
 	wg := sync.WaitGroup{}
 
-	wantEngines := findWantedEngines(r)
+	wantEngines, query := processOperators(requestQuery)
+	if len(wantEngines) == 0 {
+		wantEngines = findWantedEngines(r)
+	}
+
+	if len(query) == 0 {
+		// Empty queries are likely an error.
+		return nil, nil, fmt.Errorf("empty query")
+	}
+
 	var errors map[string]error
 	results := []search.Result{}
 	mu := sync.Mutex{}
