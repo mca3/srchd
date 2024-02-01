@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"flag"
+	"fmt"
 	"html/template"
 	"io"
 	"log"
@@ -24,6 +25,7 @@ type tmplData struct {
 	Page    int
 	Results []search.Result
 	Errors  map[string]error
+	Error   error
 	BaseURL string
 }
 
@@ -104,25 +106,33 @@ func main() {
 	h := chi.NewRouter()
 
 	h.Get("/search", func(w http.ResponseWriter, r *http.Request) {
+		var res []search.Result
+		var errors map[string]error
+		var err error
+
 		pageNo, _ := strconv.Atoi(r.URL.Query().Get("p"))
 		category, ok := getCategory(r.URL.Query().Get("c"))
 		if !ok {
-			http.Error(w, "invalid category", 400)
-			return
+			w.WriteHeader(500)
+			err = fmt.Errorf("invalid category")
+			goto render
 		}
 
-		res, errors, err := doSearch(r, category, r.URL.Query().Get("q"), pageNo)
+		res, errors, err = doSearch(r, category, r.URL.Query().Get("q"), pageNo)
 		if err != nil {
-			http.Error(w, err.Error(), 500) // TODO
-			return
+			// Set a failure response code.
+			// Everything else is handled by the template.
+			w.WriteHeader(500)
 		}
 
+	render:
 		templateExecute(w, "search.html", tmplData{
 			Title:   r.URL.Query().Get("q"),
 			Query:   r.URL.Query().Get("q"),
 			Page:    pageNo,
 			Results: res,
 			Errors:  errors,
+			Error:   err,
 			BaseURL: cfg.BaseURL,
 		})
 	})

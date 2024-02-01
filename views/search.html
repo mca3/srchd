@@ -3,8 +3,18 @@
 {{template "nav.html" .}}
 
 <main>
-	{{if gt (len .Errors) 0}}
-	<details id="errors">
+	{{if .Error}}
+	<details id="error" open>
+		<summary>Search error</summary>
+
+		<p>Your search was unable to be fulfilled: <code>{{.Error}}</code></p>
+
+		<p>
+			Please try your request again now or at another time.
+		</p>
+	</details>
+	{{else if gt (len .Errors) 0}}
+	<details id="error">
 		<summary>Search error on <b>{{len .Errors}}</b> engine{{if gt (len .Errors) 1}}s{{end}}</summary>
 
 		<p>The following engines failed to perform a search:</p>
@@ -37,12 +47,14 @@
 	</div>
 	{{end}}
 
+	{{if not .Error}}
 	<div id="paginator">
 		{{if gt .Page 1}}<a href="/search?q={{.Query}}">&lt;&lt;</a>{{end}}
 		{{if gt .Page 0}}<a href="/search?q={{.Query}}{{if ne .Page 1}}&p={{dec .Page}}{{end}}">&lt;</a>{{end}}
 		<a>{{.Page}}</a>
 		<a href="/search?q={{.Query}}&p={{inc .Page}}">&gt;</a>
 	</div>
+	{{end}}
 </main>
 
 {{template "footer" .}}

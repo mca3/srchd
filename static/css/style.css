@@ -108,7 +108,7 @@ a:visited:hover, .result > a:visited:hover .title {
 	border-top: 1px solid #928374;
 }
 
-#errors {
+#error {
 	background: #fb4934;
 	border: 1px solid #9d0006;
 	padding: 0.5em;
