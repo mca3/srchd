@@ -18,7 +18,8 @@ See `./config.go`.
 
 srchd is a young project and as such doesn't have a lot of support.
 
-- Bing
+- Bing (likely broken)
 - DuckDuckGo
 - Google
+- Yahoo
 - wiby.me (native API)
