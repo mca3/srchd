@@ -1,21 +1,17 @@
 package search
 
 import (
-	"compress/flate"
-	"compress/gzip"
 	"context"
 	"fmt"
 	"io"
 	"log"
-	"net/http"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/andybalholm/brotli"
+	"github.com/valyala/fasthttp"
 )
 
-// HttpClient is a helpful wrapper around [net/http.Client] that does useful
+// HttpClient is a helpful wrapper around [net/fasthttp.Client] that does useful
 // things to HTTP requests and responses you would've had to write anyway.
 //
 // The zero value is ready to use.
@@ -33,7 +29,7 @@ type HttpClient struct {
 	// true before the first request is made.
 	Debug bool
 
-	http *http.Client
+	http *fasthttp.Client
 	once sync.Once
 }
 
@@ -49,77 +45,8 @@ type HttpError struct {
 	Method string
 }
 
-// decompReader is a simple wrapper around two related readers.
-//
-// TODO: This may be completely unnecessary.
-type decompReader struct {
-	c io.Closer
-	r io.Reader
-}
-
-// debugRoundTripper logs all requests sent through the HTTP client to the console.
-type debugRoundTripper struct {
-	proxy http.RoundTripper
-}
-
-var (
-	_ io.ReadCloser = &decompReader{}
-)
-
 func (h HttpError) Error() string {
 	return fmt.Sprintf("%s %q failed with status code %d", h.Method, h.URL, h.Status)
-}
-
-// Reads data from the decompression stream.
-func (d *decompReader) Read(data []byte) (int, error) {
-	return d.r.Read(data)
-}
-
-// Closes the underlying stream.
-func (d *decompReader) Close() error {
-	if cr, ok := d.r.(io.ReadCloser); ok {
-		cr.Close()
-	}
-	return d.c.Close()
-}
-
-// May or may not create a new reader that decompresses content on the fly.
-func newReader(r io.ReadCloser, contentEncoding string) (io.ReadCloser, error) {
-	switch contentEncoding {
-	case "gzip":
-		dr, err := gzip.NewReader(r)
-		if err != nil {
-			return nil, err
-		}
-		return &decompReader{r, dr}, nil
-	case "deflate":
-		dr := flate.NewReader(r)
-		return &decompReader{r, dr}, nil
-	case "br":
-		dr := brotli.NewReader(r)
-		return &decompReader{r, dr}, nil
-	}
-
-	return r, nil
-}
-
-// RoundTrip logs the request to the console and calls the actual RoundTrip function.
-func (drt *debugRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	buf := &strings.Builder{}
-	fmt.Fprintf(buf, "%s %s\n", req.Method, req.URL)
-
-	req.Header.Write(buf)
-	buf.WriteString("\n\n")
-
-	resp, err := drt.proxy.RoundTrip(req)
-	if err != nil {
-		return nil, err
-	}
-
-	resp.Header.Write(buf)
-	log.Println(buf.String())
-
-	return resp, nil
 }
 
 // Ensures that the HttpClient is ready to perform requests.
@@ -127,14 +54,21 @@ func (h *HttpClient) ensureReady() {
 	h.once.Do(func() {
 		// Create a new HTTP client.
 		if h.http == nil {
-			h.http = &http.Client{}
+			h.http = &fasthttp.Client{
+				NoDefaultUserAgentHeader: true,
+				DialDualStack:            true,
+				ReadTimeout:              h.Timeout,
+				WriteTimeout:             h.Timeout,
+			}
 		}
 
 		// The debug flag requires us to use a different Transport than
 		// the default one.
-		if h.Debug {
-			h.http.Transport = &debugRoundTripper{http.DefaultTransport}
-		}
+		/*
+			if h.Debug {
+				h.http.Transport = &debugRoundTripper{http.DefaultTransport}
+			}
+		*/
 	})
 }
 
@@ -149,36 +83,45 @@ func (h *HttpClient) ua() string {
 }
 
 // New creates a new HTTP request.
-func (h *HttpClient) New(ctx context.Context, method, url string, body io.Reader) (*http.Request, error) {
+func (h *HttpClient) New(ctx context.Context, method, url string, body io.Reader) (*fasthttp.Request, error) {
 	h.ensureReady()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, body)
-	if err != nil {
-		return nil, err
-	}
+	req := fasthttp.AcquireRequest()
+
+	req.SetRequestURI(url)
 
 	// Set user agent.
-	req.Header.Set("User-Agent", h.ua())
+	req.Header.Add("User-Agent", h.ua())
 
-	// Set some headers too to make us seem more real.
+	// Add some headers too to make us seem more real.
+	// *The order is important.*
 	// TODO: This probably isn't enough, or isn't convincing.
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
-	req.Header.Set("Upgrade-Insecure-Requests", "1")
-	req.Header.Set("Sec-Fetch-Site", "none")
-	req.Header.Set("Sec-Fetch-Mode", "navigate")
-	req.Header.Set("Sec-Fetch-User", "?1")
-	req.Header.Set("Sec-Fetch-Dest", "document")
-	req.Header.Set("Accept-Encoding", "gzip, deflate, br")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+	req.Header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+	req.Header.Add("Upgrade-Insecure-Requests", "1")
+	req.Header.Add("Sec-Fetch-Site", "none")
+	req.Header.Add("Sec-Fetch-Mode", "navigate")
+	req.Header.Add("Sec-Fetch-User", "?1")
+	req.Header.Add("Sec-Fetch-Dest", "document")
+	req.Header.Add("Accept-Encoding", "gzip, deflate, br")
+	req.Header.Add("Accept-Language", "en-US,en;q=0.9")
+
+	if body != nil {
+		req.SetBodyStream(body, -1)
+	}
 
 	return req, nil
+}
+
+func (h *HttpClient) Do(req *fasthttp.Request) (*fasthttp.Response, error) {
+	res := fasthttp.AcquireResponse()
+	return res, h.http.DoRedirects(req, res, 5)
 }
 
 // Get performs a GET request on a given URL.
 //
 // If the server responds with a non-200 status code, then the returned
 // response will be nil and err will be of type [HttpError].
-func (h *HttpClient) Get(ctx context.Context, url string) (*http.Response, error) {
+func (h *HttpClient) Get(ctx context.Context, url string) (*fasthttp.Response, error) {
 	h.ensureReady()
 
 	// Create a request.
@@ -188,25 +131,16 @@ func (h *HttpClient) Get(ctx context.Context, url string) (*http.Response, error
 	}
 
 	// Perform the request.
-	res, err := h.http.Do(req)
+	res, err := h.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to perform request: %w", err)
 	}
 
-	newBody, err := newReader(res.Body, res.Header.Get("Content-Encoding"))
-	if err != nil {
-		res.Body.Close()
-		return nil, fmt.Errorf("failed to decompress body: %w", err)
-	}
-	res.Body = newBody
-
 	// Error out on non-200 status codes.
-	if res.StatusCode != 200 {
+	if res.StatusCode() != 200 {
 		// The request itself succeeded but we aren't interested in
 		// anything we got due to the failure status.
-		res.Body.Close()
-
-		return nil, HttpError{Status: res.StatusCode, URL: url, Method: "GET"}
+		return nil, HttpError{Status: res.StatusCode(), URL: url, Method: "GET"}
 	}
 
 	// All good.
@@ -217,7 +151,7 @@ func (h *HttpClient) Get(ctx context.Context, url string) (*http.Response, error
 //
 // If the server responds with a non-200 status code, then the returned
 // response will be nil and err will be of type [HttpError].
-func (h *HttpClient) Post(ctx context.Context, url string, contentType string, body io.Reader) (*http.Response, error) {
+func (h *HttpClient) Post(ctx context.Context, url string, contentType string, body io.Reader) (*fasthttp.Response, error) {
 	h.ensureReady()
 
 	// Create a request.
@@ -226,55 +160,24 @@ func (h *HttpClient) Post(ctx context.Context, url string, contentType string, b
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", contentType)
-
-	// Try to set Content-Length.
-	// If we can't do anything here, then we will send the request without it.
-	switch v := body.(type) {
-	case interface{ Len() int }:
-		// Interfaces such as strings.Reader and bytes.Buffer provide
-		// this function.
-		req.Header.Set("Content-Length", fmt.Sprint(v.Len()))
-	case io.ReadSeeker:
-		// Naive solution, but worth a shot.
-
-		offs, err := v.Seek(0, io.SeekEnd)
-		if err != nil {
-			return nil, fmt.Errorf("seek to end failed: %w", err)
-		}
-		req.Header.Set("Content-Length", fmt.Sprint(offs))
-
-		_, err = v.Seek(0, io.SeekStart)
-		if err != nil {
-			return nil, fmt.Errorf("seek to start failed: %w", err)
-		}
-	}
+	req.Header.SetContentType(contentType)
 
 	// Perform the request.
-	res, err := h.http.Do(req)
+	res, err := h.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to perform request: %w", err)
 	}
 
-	newBody, err := newReader(res.Body, res.Header.Get("Content-Encoding"))
-	if err != nil {
-		res.Body.Close()
-		return nil, fmt.Errorf("failed to decompress body: %w", err)
-	}
-	res.Body = newBody
-
 	// Error out on non-200 status codes.
-	if res.StatusCode != 200 {
+	if res.StatusCode() != 200 {
 		// The request itself succeeded but we aren't interested in
 		// anything we got due to the failure status.
 		if h.Debug {
-			buf := &strings.Builder{}
-			io.Copy(buf, res.Body)
-			log.Printf("post %s failed with status code %d: %s", url, res.StatusCode, buf.String())
+			stream, _ := res.BodyUncompressed()
+			log.Printf("post %s failed with status code %d: %s", url, res.StatusCode(), string(stream))
 		}
-		res.Body.Close()
 
-		return nil, HttpError{Status: res.StatusCode, URL: url, Method: "POST"}
+		return nil, HttpError{Status: res.StatusCode(), URL: url, Method: "POST"}
 	}
 
 	// All good.

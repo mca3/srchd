@@ -1,6 +1,7 @@
 package search
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/url"
@@ -49,9 +50,13 @@ func (b *bing) GeneralSearch(ctx context.Context, query string, page int) ([]Res
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
 
-	doc, err := goquery.NewDocumentFromReader(res.Body)
+	body, err := res.BodyUncompressed()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read body: %w", err)
+	}
+
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse html: %w", err)
 	}
@@ -86,10 +91,6 @@ func (b *bing) GeneralSearch(ctx context.Context, query string, page int) ([]Res
 // Ping checks to see if the engine is reachable.
 func (b *bing) Ping(ctx context.Context) error {
 	// Just access the index to see if we're okay.
-	res, err := b.http.Get(ctx, "https://www.bing.com/")
-	if err != nil {
-		res.Body.Close()
-		return nil
-	}
+	_, err := b.http.Get(ctx, "https://www.bing.com/")
 	return err
 }

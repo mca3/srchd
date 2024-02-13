@@ -1,6 +1,7 @@
 package search
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -67,10 +68,14 @@ func (w *wiby) GeneralSearch(ctx context.Context, query string, page int) ([]Res
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
+
+	body, err := res.BodyUncompressed()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read body: %w", err)
+	}
 
 	var wres []wibyResult
-	if err := json.NewDecoder(res.Body).Decode(&wres); err != nil {
+	if err := json.NewDecoder(bytes.NewReader(body)).Decode(&wres); err != nil {
 		return nil, err
 	}
 
@@ -85,10 +90,6 @@ func (w *wiby) GeneralSearch(ctx context.Context, query string, page int) ([]Res
 // Ping checks to see if the engine is reachable.
 func (w *wiby) Ping(ctx context.Context) error {
 	// Just access the index to see if we're okay.
-	res, err := w.http.Get(ctx, "https://wiby.me/")
-	if err != nil {
-		res.Body.Close()
-		return nil
-	}
+	_, err := w.http.Get(ctx, "https://wiby.me/")
 	return err
 }

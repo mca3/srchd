@@ -1,6 +1,7 @@
 package search
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/url"
@@ -117,14 +118,18 @@ func (g *google) GeneralSearch(ctx context.Context, query string, page int) ([]R
 
 	res, err := g.http.Get(
 		ctx,
-		fmt.Sprintf("https://google.com/search?%s", form.Encode()),
+		fmt.Sprintf("https://www.google.com/search?%s", form.Encode()),
 	)
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
 
-	doc, err := goquery.NewDocumentFromReader(res.Body)
+	body, err := res.BodyUncompressed()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read body: %w", err)
+	}
+
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse html: %w", err)
 	}
@@ -148,14 +153,18 @@ func (g *google) NewsSearch(ctx context.Context, query string, page int) ([]Resu
 
 	res, err := g.http.Get(
 		ctx,
-		fmt.Sprintf("https://google.com/search?%s", form.Encode()),
+		fmt.Sprintf("https://www.google.com/search?%s", form.Encode()),
 	)
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
 
-	doc, err := goquery.NewDocumentFromReader(res.Body)
+	body, err := res.BodyUncompressed()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read body: %w", err)
+	}
+
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse html: %w", err)
 	}
@@ -166,10 +175,6 @@ func (g *google) NewsSearch(ctx context.Context, query string, page int) ([]Resu
 // Ping checks to see if the engine is reachable.
 func (g *google) Ping(ctx context.Context) error {
 	// Just access the index to see if we're okay.
-	res, err := g.http.Get(ctx, "https://google.com/")
-	if err != nil {
-		res.Body.Close()
-		return nil
-	}
+	_, err := g.http.Get(ctx, "https://google.com/")
 	return err
 }
