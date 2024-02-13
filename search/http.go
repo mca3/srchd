@@ -105,9 +105,21 @@ func newReader(r io.ReadCloser, contentEncoding string) (io.ReadCloser, error) {
 
 // RoundTrip logs the request to the console and calls the actual RoundTrip function.
 func (drt *debugRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	log.Printf("%s %s", req.Method, req.URL)
+	buf := &strings.Builder{}
+	fmt.Fprintf(buf, "%s %s\n", req.Method, req.URL)
 
-	return drt.proxy.RoundTrip(req)
+	req.Header.Write(buf)
+	buf.WriteString("\n\n")
+
+	resp, err := drt.proxy.RoundTrip(req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp.Header.Write(buf)
+	log.Println(buf.String())
+
+	return resp, nil
 }
 
 // Ensures that the HttpClient is ready to perform requests.

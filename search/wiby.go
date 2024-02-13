@@ -85,7 +85,7 @@ func (w *wiby) GeneralSearch(ctx context.Context, query string, page int) ([]Res
 // Ping checks to see if the engine is reachable.
 func (w *wiby) Ping(ctx context.Context) error {
 	// Just access the index to see if we're okay.
-	res, err := w.http.Get(ctx, "https://wiby.me")
+	res, err := w.http.Get(ctx, "https://wiby.me/")
 	if err != nil {
 		res.Body.Close()
 		return nil

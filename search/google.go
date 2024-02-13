@@ -166,7 +166,7 @@ func (g *google) NewsSearch(ctx context.Context, query string, page int) ([]Resu
 // Ping checks to see if the engine is reachable.
 func (g *google) Ping(ctx context.Context) error {
 	// Just access the index to see if we're okay.
-	res, err := g.http.Get(ctx, "https://google.com")
+	res, err := g.http.Get(ctx, "https://google.com/")
 	if err != nil {
 		res.Body.Close()
 		return nil

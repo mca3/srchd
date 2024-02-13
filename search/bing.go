@@ -44,7 +44,7 @@ func (b *bing) GeneralSearch(ctx context.Context, query string, page int) ([]Res
 
 	res, err := b.http.Get(
 		ctx,
-		"https://bing.com/search?"+form.Encode(),
+		"https://www.bing.com/search?"+form.Encode(),
 	)
 	if err != nil {
 		return nil, err
@@ -86,7 +86,7 @@ func (b *bing) GeneralSearch(ctx context.Context, query string, page int) ([]Res
 // Ping checks to see if the engine is reachable.
 func (b *bing) Ping(ctx context.Context) error {
 	// Just access the index to see if we're okay.
-	res, err := b.http.Get(ctx, "https://bing.com")
+	res, err := b.http.Get(ctx, "https://www.bing.com/")
 	if err != nil {
 		res.Body.Close()
 		return nil
