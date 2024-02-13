@@ -29,6 +29,10 @@ type HttpClient struct {
 	// If UserAgent is empty, then [DefaultUserAgent] is used.
 	UserAgent string
 
+	// Debug logs all HTTP requests sent through this HttpClient if it is
+	// true before the first request is made.
+	Debug bool
+
 	http *http.Client
 	once sync.Once
 }
@@ -53,8 +57,10 @@ type decompReader struct {
 	r io.Reader
 }
 
-// TODO: This is really horrible.
-const debug = true
+// debugRoundTripper logs all requests sent through the HTTP client to the console.
+type debugRoundTripper struct {
+	proxy http.RoundTripper
+}
 
 var (
 	_ io.ReadCloser = &decompReader{}
@@ -97,12 +103,25 @@ func newReader(r io.ReadCloser, contentEncoding string) (io.ReadCloser, error) {
 	return r, nil
 }
 
+// RoundTrip logs the request to the console and calls the actual RoundTrip function.
+func (drt *debugRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	log.Printf("%s %s", req.Method, req.URL)
+
+	return drt.proxy.RoundTrip(req)
+}
+
 // Ensures that the HttpClient is ready to perform requests.
 func (h *HttpClient) ensureReady() {
 	h.once.Do(func() {
-		// Create a new HTTP client if we have to.
+		// Create a new HTTP client.
 		if h.http == nil {
 			h.http = &http.Client{}
+		}
+
+		// The debug flag requires us to use a different Transport than
+		// the default one.
+		if h.Debug {
+			h.http.Transport = &debugRoundTripper{http.DefaultTransport}
 		}
 	})
 }
@@ -236,14 +255,14 @@ func (h *HttpClient) Post(ctx context.Context, url string, contentType string, b
 	if res.StatusCode != 200 {
 		// The request itself succeeded but we aren't interested in
 		// anything we got due to the failure status.
-		if debug {
+		if h.Debug {
 			buf := &strings.Builder{}
 			io.Copy(buf, res.Body)
 			log.Printf("post %s failed with status code %d: %s", url, res.StatusCode, buf.String())
 		}
 		res.Body.Close()
 
-		return nil, HttpError{Status: res.StatusCode, URL: url, Method: "Post"}
+		return nil, HttpError{Status: res.StatusCode, URL: url, Method: "POST"}
 	}
 
 	// All good.

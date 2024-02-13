@@ -9,6 +9,7 @@ import (
 var DefaultConfig = map[string]any{
 	"user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.3",
 	"timeout":    "10s",
+	"debug":      false,
 
 	// This doesn't actually have any effect in this package, but is still
 	// used by srchd elsewhere. See ./searcher.go.
@@ -78,8 +79,19 @@ func newHttpClient(config map[string]any) *HttpClient {
 		}
 	}
 
+	// Set the debug flag if we need to.
+	var debug bool
+	{
+		var ok bool
+		debug, ok = GetConfigValue[bool](config, "debug")
+		if !ok {
+			panic("debug value is invalid")
+		}
+	}
+
 	return &HttpClient{
 		Timeout:   timeout,
 		UserAgent: userAgent,
+		Debug:     debug,
 	}
 }
