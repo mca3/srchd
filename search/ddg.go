@@ -159,7 +159,7 @@ func (d *ddg) GeneralSearch(ctx context.Context, query string, page int) ([]Resu
 		ctx,
 		"https://lite.duckduckgo.com/lite",
 		"application/x-www-form-urlencoded",
-		strings.NewReader(form.Encode()),
+		[]byte(form.Encode()),
 	)
 	if err != nil {
 		return nil, err
@@ -203,7 +203,11 @@ func (d *ddg) GeneralSearch(ctx context.Context, query string, page int) ([]Resu
 
 		// Check for ads.
 		v.Link, _ = link.Attr("href")
-		v.Link = decodeDDGHref(v.Link)
+
+		// NOTE: For some reason, when I made my requests match Chrome
+		// more, I stopped needing to decode hrefs.
+		// v.Link = decodeDDGHref(v.Link)
+
 		if strings.HasPrefix(v.Link, "https://duckduckgo.com/y.js") || v.Link == "" {
 			continue
 		}

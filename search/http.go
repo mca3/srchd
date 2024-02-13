@@ -3,7 +3,6 @@ package search
 import (
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"sync"
 	"time"
@@ -83,31 +82,51 @@ func (h *HttpClient) ua() string {
 }
 
 // New creates a new HTTP request.
-func (h *HttpClient) New(ctx context.Context, method, url string, body io.Reader) (*fasthttp.Request, error) {
+func (h *HttpClient) New(ctx context.Context, method, url string, body []byte, contentType ...string) (*fasthttp.Request, error) {
 	h.ensureReady()
 
 	req := fasthttp.AcquireRequest()
 
-	req.SetRequestURI(url)
+	// Enable hard mode.
+	// This is done because otherwise fasthttp orders things differently
+	// than a browser would, and we *want* to look as close to a browser as
+	// possible.
+	req.Header.DisableSpecialHeader()
+	req.Header.DisableNormalizing()
 
-	// Set user agent.
-	req.Header.Add("User-Agent", h.ua())
+	// Since we have no special header handling, we have to set all of this ourselves.
+	uri := fasthttp.AcquireURI()
+	uri.Parse(nil, []byte(url))
+
+	req.SetURI(uri)
+
+	req.Header.SetMethod(method)
+	req.Header.SetBytesV("Host", uri.Host())
+
+	req.Header.Set("sec-ch-ua", `"Chromium";v="121", "Not)A;Brand";v="24", "Google Chrome";v="121"`)
+	req.Header.Set("sec-ch-ua-mobile", `?0`)
+	req.Header.Set("sec-ch-ua-platform", `"Windows"`)
+	req.Header.Set("Upgrade-Insecure-Requests", `1`)
+	req.Header.Set("User-Agent", h.ua())
 
 	// Add some headers too to make us seem more real.
 	// *The order is important.*
 	// TODO: This probably isn't enough, or isn't convincing.
 	req.Header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
-	req.Header.Add("Upgrade-Insecure-Requests", "1")
-	req.Header.Add("Sec-Fetch-Site", "none")
-	req.Header.Add("Sec-Fetch-Mode", "navigate")
-	req.Header.Add("Sec-Fetch-User", "?1")
-	req.Header.Add("Sec-Fetch-Dest", "document")
-	req.Header.Add("Accept-Encoding", "gzip, deflate, br")
-	req.Header.Add("Accept-Language", "en-US,en;q=0.9")
 
 	if body != nil {
-		req.SetBodyStream(body, -1)
+		req.SetBody(body)
+
+		req.Header.Set("Content-Type", contentType[0])
+		req.Header.Set("Content-Length", fmt.Sprint(len(body)))
 	}
+
+	req.Header.Set("Sec-Fetch-Site", `none`)
+	req.Header.Set("Sec-Fetch-Mode", `navigate`)
+	req.Header.Set("Sec-Fetch-User", `?1`)
+	req.Header.Set("Sec-Fetch-Dest", `document`)
+	req.Header.Set("Accept-Encoding", `gzip, deflate, br`)
+	req.Header.Set("Accept-Language", `en-US,en;q=0.9`)
 
 	return req, nil
 }
@@ -151,16 +170,14 @@ func (h *HttpClient) Get(ctx context.Context, url string) (*fasthttp.Response, e
 //
 // If the server responds with a non-200 status code, then the returned
 // response will be nil and err will be of type [HttpError].
-func (h *HttpClient) Post(ctx context.Context, url string, contentType string, body io.Reader) (*fasthttp.Response, error) {
+func (h *HttpClient) Post(ctx context.Context, url string, contentType string, body []byte) (*fasthttp.Response, error) {
 	h.ensureReady()
 
 	// Create a request.
-	req, err := h.New(ctx, "POST", url, body)
+	req, err := h.New(ctx, "POST", url, body, contentType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-
-	req.Header.SetContentType(contentType)
 
 	// Perform the request.
 	res, err := h.Do(req)
