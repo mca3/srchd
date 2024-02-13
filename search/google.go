@@ -21,7 +21,7 @@ var (
 )
 
 func init() {
-	Add("google", func(name string, config ...map[string]any) (Engine, error) {
+	Add("google", true, func(name string, config ...map[string]any) (Engine, error) {
 		cfg := getConfig(config)
 
 		return &google{
@@ -175,6 +175,6 @@ func (g *google) NewsSearch(ctx context.Context, query string, page int) ([]Resu
 // Ping checks to see if the engine is reachable.
 func (g *google) Ping(ctx context.Context) error {
 	// Just access the index to see if we're okay.
-	_, err := g.http.Get(ctx, "https://google.com/")
+	_, err := g.http.Get(ctx, "https://www.google.com/")
 	return err
 }

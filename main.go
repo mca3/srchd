@@ -150,13 +150,18 @@ func main() {
 	})
 
 	h.Get("/settings", func(w http.ResponseWriter, r *http.Request) {
+		wanted := findWantedEngines(r)
+		if len(wanted) == 0 {
+			wanted = search.DefaultEngines()
+		}
+
 		templateExecute(w, "settings.html", confData{
 			tmplData: tmplData{
 				Title:   "Settings",
 				BaseURL: cfg.BaseURL,
 			},
-			Engines:  search.Supported(),
-			Selected: findWantedEngines(r),
+			Engines:  cfg.Engines,
+			Selected: wanted,
 		})
 	})
 

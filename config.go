@@ -38,7 +38,7 @@ type rewriteRule struct {
 var defaultConfig = config{
 	Addr:         ":8080",
 	BaseURL:      "http://localhost:8080",
-	Engines:      search.Supported(),
+	Engines:      search.DefaultEngines(),
 	PingInterval: timeDuration{time.Minute * 15},
 
 	EngineConfig: map[string]map[string]any{

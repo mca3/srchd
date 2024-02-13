@@ -30,7 +30,7 @@ var (
 )
 
 func init() {
-	Add("ddg", func(name string, config ...map[string]any) (Engine, error) {
+	Add("ddg", true, func(name string, config ...map[string]any) (Engine, error) {
 		cfg := getConfig(config)
 
 		return &ddg{

@@ -26,7 +26,7 @@ var (
 )
 
 func init() {
-	Add("wiby", func(name string, config ...map[string]any) (Engine, error) {
+	Add("wiby", true, func(name string, config ...map[string]any) (Engine, error) {
 		cfg := getConfig(config)
 
 		return &wiby{

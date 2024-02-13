@@ -29,6 +29,7 @@ func findWantedEngines(r *http.Request) []string {
 	if err != nil {
 		return nil
 	}
+
 	return strings.Split(strings.TrimSpace(cookie.Value), ",")
 }
 
@@ -154,7 +155,7 @@ func doSearch(r *http.Request, category category, requestQuery string, page int)
 	mu := sync.Mutex{}
 
 	for name, eng := range engines {
-		if len(wantEngines) != 0 && !slices.Contains(wantEngines, name) {
+		if len(wantEngines) > 0 && !slices.Contains(wantEngines, name) {
 			continue
 		}
 

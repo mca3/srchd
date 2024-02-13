@@ -20,7 +20,7 @@ var (
 )
 
 func init() {
-	Add("bing", func(name string, config ...map[string]any) (Engine, error) {
+	Add("bing", false, func(name string, config ...map[string]any) (Engine, error) {
 		cfg := getConfig(config)
 
 		return &bing{

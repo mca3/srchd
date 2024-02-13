@@ -74,16 +74,20 @@ type Result struct {
 }
 
 var engines = map[string]func(name string, config ...map[string]any) (Engine, error){}
+var defaultEngines = map[string]struct{}{}
 
 // Add adds a search engine to the list of supported engines.
 //
 // If a name is already in use, Add panics.
-func Add(name string, fn func(name string, config ...map[string]any) (Engine, error)) {
+func Add(name string, isDefault bool, fn func(name string, config ...map[string]any) (Engine, error)) {
 	if _, ok := engines[name]; ok {
 		panic(fmt.Sprintf("name %q already taken", name))
 	}
 
 	engines[name] = fn
+	if isDefault {
+		defaultEngines[name] = struct{}{}
+	}
 }
 
 // New creates a new instance of a search engine, given a backend name and an
@@ -100,18 +104,21 @@ func New(engine, name string, config ...map[string]any) (Engine, error) {
 	return fn(name, config...)
 }
 
-var supportedEngines []string
-var supportedOnce sync.Once
-
-// Supported returns a string of supported engines.
-func Supported() []string {
-	supportedOnce.Do(func() {
-		for name := range engines {
-			supportedEngines = append(supportedEngines, name)
-		}
-	})
+var Supported = sync.OnceValue(func() []string {
+	supportedEngines := []string{}
+	for name := range engines {
+		supportedEngines = append(supportedEngines, name)
+	}
 	return supportedEngines
-}
+})
+
+var DefaultEngines = sync.OnceValue(func() []string {
+	engines := []string{}
+	for name := range defaultEngines {
+		engines = append(engines, name)
+	}
+	return engines
+})
 
 // Strips the preceeding http:// or https:// from the link.
 func (r *Result) FancyURL() string {
