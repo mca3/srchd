@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"git.sr.ht/~cmcevoy/srchd/search"
 )
@@ -22,6 +23,9 @@ const (
 	Videos
 	Images
 )
+
+const maxTitleLen = 100
+const maxDescriptionLen = 300
 
 // Determines the default set of requested engines from the request.
 func findWantedEngines(r *http.Request) []string {
@@ -84,8 +88,28 @@ func calculateSortingScore(res search.Result) float64 {
 	return weight * res.Score
 }
 
-// Drops result entries if the link was already seen earlier in the result slice.
-func mergeResults(res []search.Result) []search.Result {
+// Truncates a string to n letters.
+func truncate(s string, n int) string {
+	if len(s) <= n || utf8.RuneCountInString(s) <= n {
+		return s
+	}
+
+	// We must trim.
+	// Go provides zero handholding when it comes to this, so this is
+	// implemented using slices.
+	ptr := 0
+	for pos := range s {
+		if ptr == n {
+			return s[:pos] + "…"
+		}
+		ptr++
+	}
+
+	panic("unreachable")
+}
+
+// Merges and sorts results.
+func processResults(res []search.Result) []search.Result {
 	// Track the first time we see a link and move stuff around.
 	firstSeen := map[string]int{}
 
@@ -121,6 +145,10 @@ func mergeResults(res []search.Result) []search.Result {
 		// This is for sorting; results seen several times will appear
 		// higher in the search results.
 		res[idx].Score++
+
+		// Ensure all fields are proper.
+		res[idx].Title = truncate(res[idx].Title, maxTitleLen)
+		res[idx].Description = truncate(res[idx].Description, maxDescriptionLen)
 
 		// Decrement i so we can try the next element.
 		i--
@@ -215,5 +243,5 @@ func doSearch(r *http.Request, category category, requestQuery string, page int)
 
 	wg.Wait()
 
-	return mergeResults(results), errors, nil
+	return processResults(results), errors, nil
 }
