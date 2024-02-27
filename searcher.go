@@ -126,6 +126,10 @@ func processResults(res []search.Result) []search.Result {
 			if res[i].Score == 0 {
 				res[i].Score = 1
 			}
+
+			// Ensure all fields are proper before we continue.
+			res[i].Title = truncate(res[i].Title, maxTitleLen)
+			res[i].Description = truncate(res[i].Description, maxDescriptionLen)
 			continue
 		}
 
@@ -137,6 +141,14 @@ func processResults(res []search.Result) []search.Result {
 			}
 		}
 
+		// If we're missing text, replace it with this.
+		if res[idx].Title == "" {
+			res[idx].Title = res[i].Title
+		}
+		if res[idx].Description == "" {
+			res[idx].Description = res[i].Description
+		}
+
 		// Swap with the last element and shrink the slice.
 		res[i], res[len(res)-1] = res[len(res)-1], res[i]
 		res = res[:len(res)-1]
@@ -145,10 +157,6 @@ func processResults(res []search.Result) []search.Result {
 		// This is for sorting; results seen several times will appear
 		// higher in the search results.
 		res[idx].Score++
-
-		// Ensure all fields are proper.
-		res[idx].Title = truncate(res[idx].Title, maxTitleLen)
-		res[idx].Description = truncate(res[idx].Description, maxDescriptionLen)
 
 		// Decrement i so we can try the next element.
 		i--
