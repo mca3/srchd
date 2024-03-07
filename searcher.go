@@ -143,10 +143,10 @@ func processResults(res []search.Result) []search.Result {
 
 		// If we're missing text, replace it with this.
 		if res[idx].Title == "" {
-			res[idx].Title = res[i].Title
+			res[idx].Title = truncate(res[i].Title, maxTitleLen)
 		}
 		if res[idx].Description == "" {
-			res[idx].Description = res[i].Description
+			res[idx].Description = truncate(res[i].Description, maxDescriptionLen)
 		}
 
 		// Swap with the last element and shrink the slice.
