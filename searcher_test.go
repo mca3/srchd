@@ -16,7 +16,7 @@ func TestMergeResults(t *testing.T) {
 		{Title: "2", Link: "2"},
 	}
 
-	results = mergeResults(results)
+	results = processResults(results)
 
 	for i, link := range []string{"1", "3", "2"} {
 		res := results[i].Link
