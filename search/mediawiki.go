@@ -123,6 +123,7 @@ func (w *mediawiki) GeneralSearch(ctx context.Context, query string, page int) (
 			Title:       title,
 			Description: desc,
 			Link:        link,
+			Sources:     []string{w.name},
 		}
 	}
 

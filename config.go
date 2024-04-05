@@ -127,9 +127,8 @@ func (t *timeDuration) UnmarshalJSON(data []byte) error {
 //
 // Uses the engine's configuration as specified in the configuration, and also
 // merges in the default config.
-func initializeEngine(driver, name string) (search.Engine, error) {
-	engineCfg, ok := cfg.EngineConfig[name]
-	if !ok {
+func initializeEngine(driver, name string, engineCfg map[string]any) (search.Engine, error) {
+	if engineCfg == nil {
 		engineCfg = cfg.EngineConfig["default"]
 
 		// No need to merge in the default config.
