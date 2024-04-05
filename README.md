@@ -21,5 +21,6 @@ srchd is a young project and as such doesn't have a lot of support.
 - Bing (likely broken)
 - DuckDuckGo
 - Google
+- Mediawiki (e.g. Wikipedia)
 - Yahoo
 - wiby.me (native API)
