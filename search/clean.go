@@ -9,7 +9,9 @@ import (
 //
 // Automatically compiled at startup; see init.
 var stripParams = []string{
-	"ref_?",
+	"ref",
+	"refid",
+	"ref_[a-z]*",
 	"referrer",
 	"utm_[a-z_]*",
 

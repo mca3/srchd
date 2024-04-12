@@ -36,37 +36,56 @@ func (g *google) parseGeneral(doc *goquery.Document) ([]Result, error) {
 	// Because we don't use the non-JS variant, we are given an extra class
 	// on search results which is *very* helpful!
 	// And it doesn't change occasionally.
-	// Each search result we care about has these properties:
-	// - has the class "g"
-	// - has a jscontroller attribute
-	elem := doc.Find(`.g[jscontroller]`)
+	elem := doc.Find(`#rso > div .g`)
 
 	// Perfect.
 	// So these divs have some child divs, with these contents:
 	// 1. header, title, link
-	// 2. description
-	// 3. ??? but it doesn't matter
+	// 2. description (or an image)
+	// 3. ??? but it doesn't matter (unless it's the description)
 	// In child div 1, we can grab the title from the one and only h3 tag,
 	// and also the href.
-	// In the second div, the inner text is the description.
+	// In the second (or third) div, the inner text is the description.
 	// And that's all we need!
-	results := make([]Result, int(elem.Length()))
+	results := make([]Result, 0, int(elem.Length()))
 
-	for i := range results {
+	for i := 0; i < cap(results); i++ {
 		v := Result{}
 
-		e := elem.Eq(i).Children().First().Children()
+		e := elem.Eq(i)
+		if v, ok := e.Children().First().Attr("class"); ok && strings.HasPrefix(v, "kp-wholepage") {
+			// Somehow goquery puts this into my selector even
+			// though it should be in #rhs and never actually
+			// matter.
+			continue
+		} else if e.Find(".g .tF2Cxc").Length() > 0 {
+			// Handle the first result, which may or may not be special.
+			// The class may or may not have to be changed.
+			e = e.Find(".g .tF2Cxc").First().Children()
+		} else {
+			e = e.Children().First().Children()
+		}
+
 		title := e.Eq(0).Find("h3")
 		link := e.Eq(0).Find("a[href]")
-		desc := e.Eq(1).Find("div")
+		desc := e.Eq(1).Children()
 
 		v.Title = title.Text()
 		v.Link, _ = link.Attr("href")
 		v.Link = CleanURL(v.Link)
 		v.Description = strings.TrimSpace(desc.Text())
+		if v.Description == "" {
+			// Try the next one over.
+			// I tried to make this a less intrusive change but I
+			// couldn't get what I wanted to do work.
+
+			desc = e.Eq(2).Children()
+			v.Description = strings.TrimSpace(desc.Text())
+		}
+
 		v.Sources = []string{g.name}
 
-		results[i] = v
+		results = append(results, v)
 	}
 
 	return results, nil
