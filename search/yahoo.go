@@ -99,7 +99,7 @@ func (b *yahoo) GeneralSearch(ctx context.Context, query string, page int) ([]Re
 		title := e.Find("h3.title > a")
 		title.Find(`span`).Remove()
 		v.Link, _ = title.Attr("href")
-		v.Link = decodeYahooHref(v.Link)
+		v.Link = CleanURL(decodeYahooHref(v.Link))
 		v.Title = title.Text()
 		v.Description = strings.TrimSpace(e.Find(".compText > p").Text())
 		v.Sources = []string{b.name}

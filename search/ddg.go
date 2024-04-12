@@ -212,6 +212,7 @@ func (d *ddg) GeneralSearch(ctx context.Context, query string, page int) ([]Resu
 			continue
 		}
 
+		v.Link = CleanURL(v.Link)
 		v.Title = link.Text()
 		v.Description = strings.TrimSpace(desc.Text())
 		v.Sources = []string{d.name}

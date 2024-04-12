@@ -62,6 +62,7 @@ func (g *google) parseGeneral(doc *goquery.Document) ([]Result, error) {
 
 		v.Title = title.Text()
 		v.Link, _ = link.Attr("href")
+		v.Link = CleanURL(v.Link)
 		v.Description = strings.TrimSpace(desc.Text())
 		v.Sources = []string{g.name}
 
@@ -85,6 +86,7 @@ func (g *google) parseNews(doc *goquery.Document) ([]Result, error) {
 		// Everything is wrapped in the a element.
 		a := elem.Eq(i).Find("div > div > a")
 		v.Link, _ = a.Attr("href")
+		v.Link = CleanURL(v.Link)
 
 		e := a.Children()
 
