@@ -3,7 +3,6 @@ package search
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -48,6 +47,9 @@ type ImageSearcher interface {
 	ImageSearch(ctx context.Context, query string, page int) ([]Result, error)
 }
 
+// An Initializer is a function that initializes an engine from a config.
+type Initializer func(config Config) (Engine, error)
+
 // Result represents a single search result from an [Engine].
 type Result struct {
 	// Title is the title of the webpage for this result.
@@ -73,36 +75,8 @@ type Result struct {
 	Score float64
 }
 
-var engines = map[string]func(name string, config ...map[string]any) (Engine, error){}
+var engines = map[string]Initializer{}
 var defaultEngines = map[string]struct{}{}
-
-// Add adds a search engine to the list of supported engines.
-//
-// If a name is already in use, Add panics.
-func Add(name string, isDefault bool, fn func(name string, config ...map[string]any) (Engine, error)) {
-	if _, ok := engines[name]; ok {
-		panic(fmt.Sprintf("name %q already taken", name))
-	}
-
-	engines[name] = fn
-	if isDefault {
-		defaultEngines[name] = struct{}{}
-	}
-}
-
-// New creates a new instance of a search engine, given a backend name and an
-// ID to tag results with.
-//
-// If an engine does not exist, Engine will be nil and error will be
-// [errors.ErrUnsupported].
-func New(engine, name string, config ...map[string]any) (Engine, error) {
-	fn, ok := engines[engine]
-	if !ok {
-		return nil, errors.ErrUnsupported
-	}
-
-	return fn(name, config...)
-}
 
 var Supported = sync.OnceValue(func() []string {
 	supportedEngines := []string{}
@@ -119,6 +93,20 @@ var DefaultEngines = sync.OnceValue(func() []string {
 	}
 	return engines
 })
+
+// Add adds a search engine to the list of supported engines.
+//
+// If a name is already in use, Add panics.
+func Add(name string, isDefault bool, fn Initializer) {
+	if _, ok := engines[name]; ok {
+		panic(fmt.Sprintf("name %q already taken", name))
+	}
+
+	engines[name] = fn
+	if isDefault {
+		defaultEngines[name] = struct{}{}
+	}
+}
 
 // Strips the preceeding http:// or https:// from the link.
 func (r *Result) FancyURL() string {

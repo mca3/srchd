@@ -24,25 +24,28 @@ var (
 
 func init() {
 	// Default is false because this requires configuration
-	search.Add("mediawiki", false, func(name string, config ...map[string]any) (search.Engine, error) {
-		cfg := search.GetConfig(config)
+	search.Add("mediawiki", false, func(config search.Config) (search.Engine, error) {
 		var ep string
 		var ok bool
 
-		if _, ok = cfg["endpoint"]; !ok {
+		if config.Extra == nil {
+			return nil, errors.New("no extra configuration despite being required")
+		}
+
+		if _, ok = config.Extra["endpoint"]; !ok {
 			return nil, errors.New("endpoint not specified")
 		}
 
-		if ep, ok = cfg["endpoint"].(string); !ok {
+		if ep, ok = config.Extra["endpoint"].(string); !ok {
 			return nil, errors.New("endpoint is not a string")
 		}
 
 		// TODO: Is endpoint valid?
 
 		return &mediawiki{
-			name:     name,
+			name:     config.Name,
 			endpoint: ep,
-			http:     search.NewHttpClient(cfg),
+			http:     config.NewHttpClient(),
 		}, nil
 	})
 }

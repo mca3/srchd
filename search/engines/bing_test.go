@@ -8,7 +8,7 @@ import (
 )
 
 func TestBingSearch(t *testing.T) {
-	d := search.MustInit("bing", "bing").(search.GeneralSearcher)
+	d := (search.Config{Type: "bing"}).MustNew().(search.GeneralSearcher)
 
 	res, err := d.GeneralSearch(context.Background(), "hello world", 0)
 	if err != nil {

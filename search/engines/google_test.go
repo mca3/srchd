@@ -8,7 +8,7 @@ import (
 )
 
 func TestGoogleSearch(t *testing.T) {
-	d := search.MustInit("google", "google").(search.GeneralSearcher)
+	d := (search.Config{Type: "google"}).MustNew().(search.GeneralSearcher)
 
 	res, err := d.GeneralSearch(context.Background(), "hello world", 0)
 	if err != nil {

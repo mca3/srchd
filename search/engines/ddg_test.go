@@ -30,7 +30,7 @@ func TestDDGPageParams(t *testing.T) {
 }
 
 func TestDDGSearch(t *testing.T) {
-	d := search.MustInit("ddg", "ddg").(search.GeneralSearcher)
+	d := (search.Config{Type: "ddg"}).MustNew().(search.GeneralSearcher)
 
 	res, err := d.GeneralSearch(context.Background(), "hello world", 0)
 	if err != nil {

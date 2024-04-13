@@ -19,7 +19,7 @@ type config struct {
 	BaseURL      string       `json:"base_url"`
 	Pprof        string
 
-	EngineConfig map[string]map[string]any `json:"engine_config"`
+	EngineConfig map[string]search.Config `json:"engine_config"`
 }
 
 // timeDuration is a wrapper on time.Duration which allows the decoding of
@@ -42,9 +42,7 @@ var defaultConfig = config{
 	Engines:      search.DefaultEngines(),
 	PingInterval: timeDuration{time.Minute * 15},
 
-	EngineConfig: map[string]map[string]any{
-		"default": search.DefaultConfig,
-	},
+	EngineConfig: map[string]search.Config{},
 }
 
 var cfg = defaultConfig
@@ -128,25 +126,12 @@ func (t *timeDuration) UnmarshalJSON(data []byte) error {
 //
 // Uses the engine's configuration as specified in the configuration, and also
 // merges in the default config.
-func initializeEngine(driver, name string, engineCfg map[string]any) (search.Engine, error) {
-	if engineCfg == nil {
-		engineCfg = cfg.EngineConfig["default"]
-
-		// No need to merge in the default config.
-		goto done
+func initializeEngine(name string) (search.Engine, error) {
+	cfg, ok := cfg.EngineConfig[name]
+	if !ok {
+		cfg.Type = name
 	}
+	cfg.Name = name
 
-	// Set all of the values of the default configuration.
-	for k, v := range cfg.EngineConfig["default"] {
-		_, ok := engineCfg[k]
-		if ok {
-			// Don't overwrite.
-			continue
-		}
-
-		engineCfg[k] = v
-	}
-
-done:
-	return search.New(driver, name, engineCfg)
+	return cfg.New()
 }

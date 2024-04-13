@@ -71,8 +71,8 @@ func calculateWeight(res search.Result) float64 {
 	sum := 0.0
 
 	for _, name := range res.Sources {
-		val, ok := search.GetConfigValue[float64](cfg.EngineConfig[name], "weight")
-		if !ok {
+		val := cfg.EngineConfig[name].Weight
+		if val == 0 {
 			val = 1
 		}
 

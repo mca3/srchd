@@ -32,12 +32,10 @@ var (
 )
 
 func init() {
-	search.Add("ddg", true, func(name string, config ...map[string]any) (search.Engine, error) {
-		cfg := search.GetConfig(config)
-
+	search.Add("ddg", true, func(config search.Config) (search.Engine, error) {
 		return &ddg{
-			name: name,
-			http: search.NewHttpClient(cfg),
+			name: config.Name,
+			http: config.NewHttpClient(),
 			vqd:  map[string]string{},
 		}, nil
 	})

@@ -97,16 +97,7 @@ func main() {
 	for _, v := range cfg.Engines {
 		log.Printf("initializing engine %q", v)
 
-		cfg := cfg.EngineConfig[v]
-		driver := v
-		if cfg != nil {
-			if v, ok := cfg["type"]; ok {
-				// TODO: Error message
-				driver = v.(string)
-			}
-		}
-
-		eng, err := initializeEngine(driver, v, cfg)
+		eng, err := initializeEngine(v)
 		if err != nil {
 			panic(err)
 		}
