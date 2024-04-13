@@ -1,4 +1,4 @@
-package search
+package engines
 
 import (
 	"bytes"
@@ -7,29 +7,25 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+
+	"git.sr.ht/~cmcevoy/srchd/search"
 )
 
 // User agent to send requests with.
 type mediawiki struct {
 	name     string
 	endpoint string
-	http     *HttpClient
+	http     *search.HttpClient
 }
 
 var (
-	_ GeneralSearcher = &mediawiki{}
+	_ search.GeneralSearcher = &mediawiki{}
 )
-
-type mediawikiResult struct {
-	Titles       []string
-	Descriptions []string
-	Links        []string
-}
 
 func init() {
 	// Default is false because this requires configuration
-	Add("mediawiki", false, func(name string, config ...map[string]any) (Engine, error) {
-		cfg := getConfig(config)
+	search.Add("mediawiki", false, func(name string, config ...map[string]any) (search.Engine, error) {
+		cfg := search.GetConfig(config)
 		var ep string
 		var ok bool
 
@@ -46,12 +42,12 @@ func init() {
 		return &mediawiki{
 			name:     name,
 			endpoint: ep,
-			http:     newHttpClient(cfg),
+			http:     search.NewHttpClient(cfg),
 		}, nil
 	})
 }
 
-func (w *mediawiki) GeneralSearch(ctx context.Context, query string, page int) ([]Result, error) {
+func (w *mediawiki) GeneralSearch(ctx context.Context, query string, page int) ([]search.Result, error) {
 	form := url.Values{}
 
 	if page > 1 {
@@ -99,7 +95,7 @@ func (w *mediawiki) GeneralSearch(ctx context.Context, query string, page int) (
 		return nil, fmt.Errorf("expected []any in fourth field, got %T", wres[3])
 	}
 
-	results := make([]Result, len(wres[1].([]any)))
+	results := make([]search.Result, len(wres[1].([]any)))
 	for i := range results {
 		// Sanity checking
 
@@ -119,7 +115,7 @@ func (w *mediawiki) GeneralSearch(ctx context.Context, query string, page int) (
 		}
 
 		// All good!
-		results[i] = Result{
+		results[i] = search.Result{
 			Title:       title,
 			Description: desc,
 			Link:        link,

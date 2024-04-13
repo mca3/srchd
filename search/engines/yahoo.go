@@ -1,4 +1,4 @@
-package search
+package engines
 
 import (
 	"bytes"
@@ -8,25 +8,27 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+
+	"git.sr.ht/~cmcevoy/srchd/search"
 )
 
 // User agent to send requests with.
 type yahoo struct {
 	name string
-	http *HttpClient
+	http *search.HttpClient
 }
 
 var (
-	_ GeneralSearcher = &yahoo{}
+	_ search.GeneralSearcher = &yahoo{}
 )
 
 func init() {
-	Add("yahoo", true, func(name string, config ...map[string]any) (Engine, error) {
-		cfg := getConfig(config)
+	search.Add("yahoo", true, func(name string, config ...map[string]any) (search.Engine, error) {
+		cfg := search.GetConfig(config)
 
 		return &yahoo{
 			name: name,
-			http: newHttpClient(cfg),
+			http: search.NewHttpClient(cfg),
 		}, nil
 	})
 }
@@ -56,7 +58,7 @@ func decodeYahooHref(href string) string {
 }
 
 // GeneralSearch attempts to query the engine and returns a number of results.
-func (b *yahoo) GeneralSearch(ctx context.Context, query string, page int) ([]Result, error) {
+func (b *yahoo) GeneralSearch(ctx context.Context, query string, page int) ([]search.Result, error) {
 	form := url.Values{}
 
 	form.Set("p", query)
@@ -90,16 +92,16 @@ func (b *yahoo) GeneralSearch(ctx context.Context, query string, page int) ([]Re
 
 	elem := doc.Find(`.algo`)
 
-	results := make([]Result, elem.Length())
+	results := make([]search.Result, elem.Length())
 
 	for i := range results {
-		v := Result{}
+		v := search.Result{}
 
 		e := elem.Eq(i)
 		title := e.Find("h3.title > a")
 		title.Find(`span`).Remove()
 		v.Link, _ = title.Attr("href")
-		v.Link = CleanURL(decodeYahooHref(v.Link))
+		v.Link = search.CleanURL(decodeYahooHref(v.Link))
 		v.Title = title.Text()
 		v.Description = strings.TrimSpace(e.Find(".compText > p").Text())
 		v.Sources = []string{b.name}

@@ -1,4 +1,4 @@
-package search
+package engines
 
 import (
 	"bytes"
@@ -8,31 +8,33 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+
+	"git.sr.ht/~cmcevoy/srchd/search"
 )
 
 type google struct {
 	name string
-	http *HttpClient
+	http *search.HttpClient
 }
 
 var (
-	_ GeneralSearcher = &google{}
-	_ NewsSearcher    = &google{}
+	_ search.GeneralSearcher = &google{}
+	_ search.NewsSearcher    = &google{}
 )
 
 func init() {
-	Add("google", true, func(name string, config ...map[string]any) (Engine, error) {
-		cfg := getConfig(config)
+	search.Add("google", true, func(name string, config ...map[string]any) (search.Engine, error) {
+		cfg := search.GetConfig(config)
 
 		return &google{
 			name: name,
-			http: newHttpClient(cfg),
+			http: search.NewHttpClient(cfg),
 		}, nil
 	})
 }
 
 // Parses a general query results page.
-func (g *google) parseGeneral(doc *goquery.Document) ([]Result, error) {
+func (g *google) parseGeneral(doc *goquery.Document) ([]search.Result, error) {
 	// Because we don't use the non-JS variant, we are given an extra class
 	// on search results which is *very* helpful!
 	// And it doesn't change occasionally.
@@ -47,10 +49,10 @@ func (g *google) parseGeneral(doc *goquery.Document) ([]Result, error) {
 	// and also the href.
 	// In the second (or third) div, the inner text is the description.
 	// And that's all we need!
-	results := make([]Result, 0, int(elem.Length()))
+	results := make([]search.Result, 0, int(elem.Length()))
 
 	for i := 0; i < cap(results); i++ {
-		v := Result{}
+		v := search.Result{}
 
 		e := elem.Eq(i)
 		if v, ok := e.Children().First().Attr("class"); ok && strings.HasPrefix(v, "kp-wholepage") {
@@ -72,7 +74,7 @@ func (g *google) parseGeneral(doc *goquery.Document) ([]Result, error) {
 
 		v.Title = title.Text()
 		v.Link, _ = link.Attr("href")
-		v.Link = CleanURL(v.Link)
+		v.Link = search.CleanURL(v.Link)
 		v.Description = strings.TrimSpace(desc.Text())
 		if v.Description == "" {
 			// Try the next one over.
@@ -92,20 +94,20 @@ func (g *google) parseGeneral(doc *goquery.Document) ([]Result, error) {
 }
 
 // Parses news query results.
-func (g *google) parseNews(doc *goquery.Document) ([]Result, error) {
+func (g *google) parseNews(doc *goquery.Document) ([]search.Result, error) {
 	// News stuff is done a bit differently than normal but isn't too hard to parse.
 	elem := doc.Find("#rso > div > div").Children()
 
 	// And there's all of our news results.
-	results := make([]Result, int(elem.Length()))
+	results := make([]search.Result, int(elem.Length()))
 
 	for i := range results {
-		v := Result{}
+		v := search.Result{}
 
 		// Everything is wrapped in the a element.
 		a := elem.Eq(i).Find("div > div > a")
 		v.Link, _ = a.Attr("href")
-		v.Link = CleanURL(v.Link)
+		v.Link = search.CleanURL(v.Link)
 
 		e := a.Children()
 
@@ -125,7 +127,7 @@ func (g *google) parseNews(doc *goquery.Document) ([]Result, error) {
 }
 
 // Search attempts to query the engine and returns a number of results.
-func (g *google) GeneralSearch(ctx context.Context, query string, page int) ([]Result, error) {
+func (g *google) GeneralSearch(ctx context.Context, query string, page int) ([]search.Result, error) {
 	form := url.Values{}
 
 	form.Set("q", query)
@@ -159,7 +161,7 @@ func (g *google) GeneralSearch(ctx context.Context, query string, page int) ([]R
 }
 
 // NewsSearch attempts to query the engine and returns a number of results.
-func (g *google) NewsSearch(ctx context.Context, query string, page int) ([]Result, error) {
+func (g *google) NewsSearch(ctx context.Context, query string, page int) ([]search.Result, error) {
 	form := url.Values{}
 
 	form.Set("q", query)

@@ -1,4 +1,4 @@
-package search
+package engines
 
 import (
 	"bytes"
@@ -7,31 +7,33 @@ import (
 	"net/url"
 
 	"github.com/PuerkitoBio/goquery"
+
+	"git.sr.ht/~cmcevoy/srchd/search"
 )
 
 // User agent to send requests with.
 type bing struct {
 	name string
-	http *HttpClient
+	http *search.HttpClient
 }
 
 var (
-	_ GeneralSearcher = &bing{}
+	_ search.GeneralSearcher = &bing{}
 )
 
 func init() {
-	Add("bing", false, func(name string, config ...map[string]any) (Engine, error) {
-		cfg := getConfig(config)
+	search.Add("bing", false, func(name string, config ...map[string]any) (search.Engine, error) {
+		cfg := search.GetConfig(config)
 
 		return &bing{
 			name: name,
-			http: newHttpClient(cfg),
+			http: search.NewHttpClient(cfg),
 		}, nil
 	})
 }
 
 // GeneralSearch attempts to query the engine and returns a number of results.
-func (b *bing) GeneralSearch(ctx context.Context, query string, page int) ([]Result, error) {
+func (b *bing) GeneralSearch(ctx context.Context, query string, page int) ([]search.Result, error) {
 	form := url.Values{}
 
 	form.Set("q", query)
@@ -70,15 +72,15 @@ func (b *bing) GeneralSearch(ctx context.Context, query string, page int) ([]Res
 	// h2 > a: title and link
 	// div.b_caption > p: desc
 
-	results := make([]Result, elem.Length())
+	results := make([]search.Result, elem.Length())
 
 	for i := range results {
-		v := Result{}
+		v := search.Result{}
 
 		e := elem.Eq(i)
 		title := e.Find("h2 > a")
 		v.Link, _ = title.Attr("href")
-		v.Link = CleanURL(v.Link)
+		v.Link = search.CleanURL(v.Link)
 		v.Title = title.Text()
 		v.Description = e.Find("div > p").Text()
 		v.Sources = []string{b.name}

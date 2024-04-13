@@ -17,6 +17,8 @@ import (
 
 	"git.sr.ht/~cmcevoy/srchd/search"
 	"github.com/go-chi/chi/v5"
+
+	_ "git.sr.ht/~cmcevoy/srchd/search/engines"
 )
 
 type tmplData struct {

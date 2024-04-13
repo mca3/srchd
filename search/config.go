@@ -18,7 +18,7 @@ var DefaultConfig = map[string]any{
 
 // getConfig returns a config from the passed slice.
 // Used for the init functions, which are variadic functions accepting map[string]any.
-func getConfig(config []map[string]any) map[string]any {
+func GetConfig(config []map[string]any) map[string]any {
 	if len(config) == 0 {
 		return DefaultConfig
 	}
@@ -53,7 +53,7 @@ func GetConfigValue[T any](config map[string]any, key string) (value T, ok bool)
 	return
 }
 
-func newHttpClient(config map[string]any) *HttpClient {
+func NewHttpClient(config map[string]any) *HttpClient {
 	// Attempt to parse the timeout duration.
 	var timeout time.Duration
 	{
@@ -94,4 +94,17 @@ func newHttpClient(config map[string]any) *HttpClient {
 		UserAgent: userAgent,
 		Debug:     debug,
 	}
+}
+
+// Attempts to initialize a driver with the given configuration, and panics
+// upon failure.
+//
+// Primarily geared towards testing.
+func MustInit(driver, name string, config ...map[string]any) Engine {
+	e, err := New(driver, name, config...)
+	if err != nil {
+		panic(err)
+	}
+
+	return e
 }

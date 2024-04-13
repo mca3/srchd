@@ -1,12 +1,14 @@
-package search
+package engines
 
 import (
 	"context"
 	"testing"
+
+	"git.sr.ht/~cmcevoy/srchd/search"
 )
 
 func TestMediawikiSearch(t *testing.T) {
-	d := mustInit("mediawiki", "mediawiki", map[string]any{"endpoint": "https://en.wikipedia.org/w/api.php"}).(GeneralSearcher)
+	d := search.MustInit("mediawiki", "mediawiki", map[string]any{"endpoint": "https://en.wikipedia.org/w/api.php"}).(search.GeneralSearcher)
 
 	res, err := d.GeneralSearch(context.Background(), "hello world", 0)
 	if err != nil {

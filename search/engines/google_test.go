@@ -1,12 +1,14 @@
-package search
+package engines
 
 import (
 	"context"
 	"testing"
+
+	"git.sr.ht/~cmcevoy/srchd/search"
 )
 
 func TestGoogleSearch(t *testing.T) {
-	d := mustInit("google", "google").(GeneralSearcher)
+	d := search.MustInit("google", "google").(search.GeneralSearcher)
 
 	res, err := d.GeneralSearch(context.Background(), "hello world", 0)
 	if err != nil {

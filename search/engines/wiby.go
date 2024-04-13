@@ -1,4 +1,4 @@
-package search
+package engines
 
 import (
 	"bytes"
@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"html"
 	"net/url"
+
+	"git.sr.ht/~cmcevoy/srchd/search"
 )
 
 // User agent to send requests with.
 type wiby struct {
 	name string
-	http *HttpClient
+	http *search.HttpClient
 }
 
 type wibyResult struct {
@@ -22,26 +24,26 @@ type wibyResult struct {
 }
 
 var (
-	_ GeneralSearcher = &wiby{}
+	_ search.GeneralSearcher = &wiby{}
 )
 
 func init() {
-	Add("wiby", true, func(name string, config ...map[string]any) (Engine, error) {
-		cfg := getConfig(config)
+	search.Add("wiby", true, func(name string, config ...map[string]any) (search.Engine, error) {
+		cfg := search.GetConfig(config)
 
 		return &wiby{
 			name: name,
-			http: newHttpClient(cfg),
+			http: search.NewHttpClient(cfg),
 		}, nil
 	})
 }
 
-func (w *wiby) toNativeResult(r wibyResult) Result {
+func (w *wiby) toNativeResult(r wibyResult) search.Result {
 	// wiby escapes all text for direct inclusion in HTML, presumably.
 	// Go's text/template does this for us, so text should be unescaped
 	// here to prevent "&amp;" and other similar escapes from appearing as
 	// text in the results page.
-	return Result{
+	return search.Result{
 		Link:        html.UnescapeString(r.URL),
 		Title:       html.UnescapeString(r.Title),
 		Description: html.UnescapeString(r.Snippet),
@@ -49,7 +51,7 @@ func (w *wiby) toNativeResult(r wibyResult) Result {
 	}
 }
 
-func (w *wiby) GeneralSearch(ctx context.Context, query string, page int) ([]Result, error) {
+func (w *wiby) GeneralSearch(ctx context.Context, query string, page int) ([]search.Result, error) {
 	// Wiby has a native API we can use.
 	// There's probably some encoding/json tomfoolery I could employ so we
 	// don't need an intermediate step, but whatever.
@@ -79,7 +81,7 @@ func (w *wiby) GeneralSearch(ctx context.Context, query string, page int) ([]Res
 		return nil, err
 	}
 
-	results := make([]Result, len(wres))
+	results := make([]search.Result, len(wres))
 	for i := range results {
 		results[i] = w.toNativeResult(wres[i])
 	}

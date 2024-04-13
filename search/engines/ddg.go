@@ -1,4 +1,4 @@
-package search
+package engines
 
 import (
 	"bytes"
@@ -9,12 +9,14 @@ import (
 	"sync"
 
 	"github.com/PuerkitoBio/goquery"
+
+	"git.sr.ht/~cmcevoy/srchd/search"
 )
 
 // User agent to send requests with.
 type ddg struct {
 	name string
-	http *HttpClient
+	http *search.HttpClient
 
 	// vqd parameter.
 	//
@@ -26,16 +28,16 @@ type ddg struct {
 }
 
 var (
-	_ GeneralSearcher = &ddg{}
+	_ search.GeneralSearcher = &ddg{}
 )
 
 func init() {
-	Add("ddg", true, func(name string, config ...map[string]any) (Engine, error) {
-		cfg := getConfig(config)
+	search.Add("ddg", true, func(name string, config ...map[string]any) (search.Engine, error) {
+		cfg := search.GetConfig(config)
 
 		return &ddg{
 			name: name,
-			http: newHttpClient(cfg),
+			http: search.NewHttpClient(cfg),
 			vqd:  map[string]string{},
 		}, nil
 	})
@@ -131,7 +133,7 @@ func encodeDDGQuery(query string) string {
 }
 
 // GeneralSearch attempts to query the engine and returns a number of results.
-func (d *ddg) GeneralSearch(ctx context.Context, query string, page int) ([]Result, error) {
+func (d *ddg) GeneralSearch(ctx context.Context, query string, page int) ([]search.Result, error) {
 	form := url.Values{}
 
 	form.Set("q", encodeDDGQuery(query))
@@ -191,10 +193,10 @@ func (d *ddg) GeneralSearch(ctx context.Context, query string, page int) ([]Resu
 	// Ads are stripped out, of course, and it's unknown how many of those
 	// there are.
 
-	results := make([]Result, 0, int(elem.Length()/4))
+	results := make([]search.Result, 0, int(elem.Length()/4))
 
 	for i := 0; i < int(elem.Length()/4); i++ {
-		v := Result{}
+		v := search.Result{}
 
 		header := elem.Eq(i * 4)
 		link := header.Find("a.result-link")
@@ -212,7 +214,7 @@ func (d *ddg) GeneralSearch(ctx context.Context, query string, page int) ([]Resu
 			continue
 		}
 
-		v.Link = CleanURL(v.Link)
+		v.Link = search.CleanURL(v.Link)
 		v.Title = link.Text()
 		v.Description = strings.TrimSpace(desc.Text())
 		v.Sources = []string{d.name}
