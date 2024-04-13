@@ -17,6 +17,7 @@ type config struct {
 	Rewrite      []rewriteRule
 	PingInterval timeDuration `json:"ping_interval"`
 	BaseURL      string       `json:"base_url"`
+	Pprof        string
 
 	EngineConfig map[string]map[string]any `json:"engine_config"`
 }

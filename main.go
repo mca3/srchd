@@ -19,6 +19,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	_ "git.sr.ht/~cmcevoy/srchd/search/engines"
+	_ "net/http/pprof"
 )
 
 type tmplData struct {
@@ -113,6 +114,13 @@ func main() {
 	}
 
 	go pinger(context.TODO())
+
+	if cfg.Pprof != "" {
+		go func() {
+			// TODO: VERY TEMPORARY
+			log.Println(http.ListenAndServe(cfg.Pprof, nil))
+		}()
+	}
 
 	h := chi.NewRouter()
 
