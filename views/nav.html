@@ -1,7 +1,7 @@
 <nav>
 	<a href="/" class="name">srchd</a>
 
-	<form method="GET" action="/search" id="search">
+	<form method="POST" action="/search" id="search">
 		<input type="search" name="q" id="q" placeholder="Search..."{{if .Query}} value="{{.Query}}"{{end}}>
 		<input type="submit" value="→">
 	</form>

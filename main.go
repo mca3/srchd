@@ -115,20 +115,36 @@ func main() {
 
 	h := chi.NewRouter()
 
-	h.Get("/search", func(w http.ResponseWriter, r *http.Request) {
+	h.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
 		var res []search.Result
 		var errors map[string]error
 		var err error
 
-		pageNo, _ := strconv.Atoi(r.URL.Query().Get("p"))
-		category, ok := getCategory(r.URL.Query().Get("c"))
+		var query, page, c string
+
+		if r.Method == http.MethodGet {
+			page = r.URL.Query().Get("p")
+			c = r.URL.Query().Get("c")
+			query = r.URL.Query().Get("q")
+		} else if r.Method == http.MethodPost {
+			page = r.FormValue("p")
+			c = r.FormValue("c")
+			query = r.FormValue("q")
+		} else {
+			// Unsupported method
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		pageNo, _ := strconv.Atoi(page)
+		category, ok := getCategory(c)
 		if !ok {
 			w.WriteHeader(500)
 			err = fmt.Errorf("invalid category")
 			goto render
 		}
 
-		res, errors, err = doSearch(r, category, r.URL.Query().Get("q"), pageNo)
+		res, errors, err = doSearch(r, category, query, pageNo)
 		if err != nil {
 			// Set a failure response code.
 			// Everything else is handled by the template.
@@ -137,8 +153,8 @@ func main() {
 
 	render:
 		templateExecute(w, "search.html", tmplData{
-			Title:   r.URL.Query().Get("q"),
-			Query:   r.URL.Query().Get("q"),
+			Title:   query,
+			Query:   query,
 			Page:    pageNo,
 			Results: res,
 			Errors:  errors,
