@@ -94,7 +94,7 @@ func main() {
 		}
 	}
 
-	for _, v := range cfg.Engines {
+	for _, v := range enabledEngines() {
 		log.Printf("initializing engine %q", v)
 
 		eng, err := initializeEngine(v)
@@ -186,7 +186,7 @@ func main() {
 				Title:   "Settings",
 				BaseURL: cfg.BaseURL,
 			},
-			Engines:  cfg.Engines,
+			Engines:  enabledEngines(),
 			Selected: wanted,
 		})
 	})

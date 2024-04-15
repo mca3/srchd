@@ -71,9 +71,16 @@ func calculateWeight(res search.Result) float64 {
 	sum := 0.0
 
 	for _, name := range res.Sources {
-		val := cfg.EngineConfig[name].Weight
-		if val == 0 {
-			val = 1
+		val := 1.0
+
+		// Override the above value if there was one set.
+		engineConfig, ok := cfg.Engines[name]
+		if ok {
+			// Ensure the weight is 1.
+			val = engineConfig.Weight
+			if val == 0 {
+				val = 1
+			}
 		}
 
 		sum += val

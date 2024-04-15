@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"slices"
+	"sync"
 	"time"
 
 	"git.sr.ht/~cmcevoy/srchd/search"
@@ -13,13 +15,13 @@ import (
 
 type config struct {
 	Addr         string
-	Engines      []string
 	Rewrite      []rewriteRule
 	PingInterval timeDuration `json:"ping_interval"`
 	BaseURL      string       `json:"base_url"`
 	Pprof        string
 
-	EngineConfig map[string]search.Config `json:"engine_config"`
+	Engines  map[string]search.Config `json:"engines"`
+	Disabled []string                 `json:"disabled"`
 }
 
 // timeDuration is a wrapper on time.Duration which allows the decoding of
@@ -39,10 +41,9 @@ type rewriteRule struct {
 var defaultConfig = config{
 	Addr:         ":8080",
 	BaseURL:      "http://localhost:8080",
-	Engines:      search.DefaultEngines(),
 	PingInterval: timeDuration{time.Minute * 15},
 
-	EngineConfig: map[string]search.Config{},
+	Engines: map[string]search.Config{},
 }
 
 var cfg = defaultConfig
@@ -127,7 +128,7 @@ func (t *timeDuration) UnmarshalJSON(data []byte) error {
 // Uses the engine's configuration as specified in the configuration, and also
 // merges in the default config.
 func initializeEngine(name string) (search.Engine, error) {
-	cfg, ok := cfg.EngineConfig[name]
+	cfg, ok := cfg.Engines[name]
 	if !ok {
 		cfg.Type = name
 	}
@@ -135,3 +136,56 @@ func initializeEngine(name string) (search.Engine, error) {
 
 	return cfg.New()
 }
+
+// Determines if a specific engine has been disabled.
+//
+// An engine is disabled if it is explicitly disabled, or if it has no
+// configuration and is not an engine enabled by default.
+func engineIsDisabled(name string) bool {
+	// Check if it is explicitly disabled first.
+	if slices.Contains(cfg.Disabled, name) {
+		// Engine was disabled.
+		return true
+	}
+
+	// Not explicitly disabled.
+	// Check to see if it was configured.
+	_, ok := cfg.Engines[name]
+	if ok {
+		// Was configured.
+		return false
+	}
+
+	// Finally, check to see if it is supposed to be enabled by default.
+	if slices.Contains(search.DefaultEngines(), name) {
+		// Enabled by default.
+		return false
+	}
+
+	// All of the above checks failed, so it is disabled.
+	return true
+}
+
+// Returns a list of enabled engines.
+//
+// An enabled engine is one that is not explicitly disabled and is either set
+// to be a "default" engine or has been configured.
+var enabledEngines = sync.OnceValue(func() []string {
+	engines := make([]string, 0)
+
+	// Copy in all default engines provided they aren't disabled.
+	for _, v := range search.DefaultEngines() {
+		if !engineIsDisabled(v) {
+			engines = append(engines, v)
+		}
+	}
+
+	// Copy in everything that was explicitly configured.
+	for k := range cfg.Engines {
+		if !engineIsDisabled(k) && !slices.Contains(engines, k) {
+			engines = append(engines, k)
+		}
+	}
+
+	return engines
+})
