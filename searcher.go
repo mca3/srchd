@@ -221,6 +221,5 @@ func doSearch(r *http.Request, requestQuery string, page int) ([]search.Result, 
 
 	wg.Wait()
 
-	log.Println(len(results))
 	return processResults(results), errors, nil
 }

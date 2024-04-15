@@ -87,9 +87,9 @@ func (c Config) New() (Engine, error) {
 
 	// At least one of c.Name or c.Type is known to be non-empty so we only
 	// have to check once.
-	driverName := c.Name
-	if driverName == "" {
-		driverName = c.Type
+	if c.Name == "" {
+		// Default to the name of the engine.
+		c.Name = c.Type
 	}
 
 	// Initialize the driver, if we found it.
