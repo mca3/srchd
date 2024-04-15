@@ -2,12 +2,18 @@ package engines
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"git.sr.ht/~cmcevoy/srchd/search"
 )
 
 func TestBingSearch(t *testing.T) {
+	if os.Getenv("SRCHD_TEST_BROKEN") == "" {
+		t.Skip("Set SRCHD_TEST_BROKEN=1 to test Bing search.")
+		return
+	}
+
 	d := (search.Config{Type: "bing"}).MustNew().(search.GeneralSearcher)
 
 	res, err := d.GeneralSearch(context.Background(), "hello world", 0)
