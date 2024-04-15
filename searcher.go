@@ -15,15 +15,6 @@ import (
 
 var engines = map[string]search.Engine{}
 
-type category int
-
-const (
-	General category = iota
-	News
-	Videos
-	Images
-)
-
 const maxTitleLen = 100
 const maxDescriptionLen = 300
 
@@ -180,7 +171,7 @@ func processResults(res []search.Result) []search.Result {
 }
 
 // Searches all requested engines.
-func doSearch(r *http.Request, category category, requestQuery string, page int) ([]search.Result, map[string]error, error) {
+func doSearch(r *http.Request, requestQuery string, page int) ([]search.Result, map[string]error, error) {
 	wg := sync.WaitGroup{}
 
 	wantEngines, query := processOperators(requestQuery)
@@ -206,35 +197,7 @@ func doSearch(r *http.Request, category category, requestQuery string, page int)
 		go func(name string, e search.Engine) {
 			defer wg.Done()
 
-			var res []search.Result
-			var err error
-
-			switch category {
-			case General:
-				eng, ok := e.(search.GeneralSearcher)
-				if !ok {
-					return
-				}
-				res, err = eng.GeneralSearch(r.Context(), query, page)
-			case News:
-				eng, ok := e.(search.NewsSearcher)
-				if !ok {
-					return
-				}
-				res, err = eng.NewsSearch(r.Context(), query, page)
-			case Videos:
-				eng, ok := e.(search.VideoSearcher)
-				if !ok {
-					return
-				}
-				res, err = eng.VideoSearch(r.Context(), query, page)
-			case Images:
-				eng, ok := e.(search.ImageSearcher)
-				if !ok {
-					return
-				}
-				res, err = eng.ImageSearch(r.Context(), query, page)
-			}
+			res, err := e.Search(r.Context(), query, page)
 
 			mu.Lock()
 			defer mu.Unlock()
@@ -258,5 +221,6 @@ func doSearch(r *http.Request, category category, requestQuery string, page int)
 
 	wg.Wait()
 
+	log.Println(len(results))
 	return processResults(results), errors, nil
 }

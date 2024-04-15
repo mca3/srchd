@@ -28,7 +28,7 @@ type ddg struct {
 }
 
 var (
-	_ search.GeneralSearcher = &ddg{}
+	_ search.Engine = &ddg{}
 )
 
 func init() {
@@ -130,8 +130,8 @@ func encodeDDGQuery(query string) string {
 	return strings.Join(toks, " ")
 }
 
-// GeneralSearch attempts to query the engine and returns a number of results.
-func (d *ddg) GeneralSearch(ctx context.Context, query string, page int) ([]search.Result, error) {
+// Search attempts to query the engine and returns a number of results.
+func (d *ddg) Search(ctx context.Context, query string, page int) ([]search.Result, error) {
 	form := url.Values{}
 
 	form.Set("q", encodeDDGQuery(query))

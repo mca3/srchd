@@ -24,7 +24,7 @@ type wibyResult struct {
 }
 
 var (
-	_ search.GeneralSearcher = &wiby{}
+	_ search.Engine = &wiby{}
 )
 
 func init() {
@@ -49,7 +49,7 @@ func (w *wiby) toNativeResult(r wibyResult) search.Result {
 	}
 }
 
-func (w *wiby) GeneralSearch(ctx context.Context, query string, page int) ([]search.Result, error) {
+func (w *wiby) Search(ctx context.Context, query string, page int) ([]search.Result, error) {
 	// Wiby has a native API we can use.
 	// There's probably some encoding/json tomfoolery I could employ so we
 	// don't need an intermediate step, but whatever.

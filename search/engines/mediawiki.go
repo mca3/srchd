@@ -19,7 +19,7 @@ type mediawiki struct {
 }
 
 var (
-	_ search.GeneralSearcher = &mediawiki{}
+	_ search.Engine = &mediawiki{}
 )
 
 func init() {
@@ -50,7 +50,7 @@ func init() {
 	})
 }
 
-func (w *mediawiki) GeneralSearch(ctx context.Context, query string, page int) ([]search.Result, error) {
+func (w *mediawiki) Search(ctx context.Context, query string, page int) ([]search.Result, error) {
 	form := url.Values{}
 
 	if page > 1 {

@@ -13,38 +13,9 @@ import (
 type Engine interface {
 	// Ping checks to see if the engine is reachable.
 	Ping(ctx context.Context) error
-}
 
-// GeneralSearcher is an [Engine] that can do general search engine queries.
-type GeneralSearcher interface {
-	Engine
-
-	// GeneralSearch attempts to query the engine and returns a number of results.
-	GeneralSearch(ctx context.Context, query string, page int) ([]Result, error)
-}
-
-// NewsSearcher is an [Engine] that can do general search engine queries.
-type NewsSearcher interface {
-	Engine
-
-	// NewsSearch attempts to query the engine and returns a number of results.
-	NewsSearch(ctx context.Context, query string, page int) ([]Result, error)
-}
-
-// VideoSearcher is an [Engine] that can do general search engine queries.
-type VideoSearcher interface {
-	Engine
-
-	// VideoSearch attempts to query the engine and returns a number of results.
-	VideoSearch(ctx context.Context, query string, page int) ([]Result, error)
-}
-
-// ImageSearcher is an [Engine] that can do general search engine queries.
-type ImageSearcher interface {
-	Engine
-
-	// ImageSearch attempts to query the engine and returns a number of results.
-	ImageSearch(ctx context.Context, query string, page int) ([]Result, error)
+	// Search attempts to query the engine and returns a number of results.
+	Search(ctx context.Context, query string, page int) ([]Result, error)
 }
 
 // An Initializer is a function that initializes an engine from a config.

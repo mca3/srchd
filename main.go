@@ -4,7 +4,6 @@ import (
 	"context"
 	"embed"
 	"flag"
-	"fmt"
 	"html/template"
 	"io"
 	"log"
@@ -59,21 +58,6 @@ var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
 	"timing": getTiming,
 }).ParseFS(tmplFS, "views/*.html", "views/*.xml"))
 
-func getCategory(q string) (category, bool) {
-	switch q {
-	case "", "g":
-		return General, true
-	case "v":
-		return Videos, true
-	case "i":
-		return Images, true
-	case "n":
-		return News, true
-	}
-
-	return -1, false
-}
-
 func templateExecute(out io.Writer, name string, data any) {
 	if err := tmpl.ExecuteTemplate(out, name, data); err != nil {
 		log.Printf("executing template %q failed: %v", name, err)
@@ -120,15 +104,13 @@ func main() {
 		var errors map[string]error
 		var err error
 
-		var query, page, c string
+		var query, page string
 
 		if r.Method == http.MethodGet {
 			page = r.URL.Query().Get("p")
-			c = r.URL.Query().Get("c")
 			query = r.URL.Query().Get("q")
 		} else if r.Method == http.MethodPost {
 			page = r.FormValue("p")
-			c = r.FormValue("c")
 			query = r.FormValue("q")
 		} else {
 			// Unsupported method
@@ -137,21 +119,14 @@ func main() {
 		}
 
 		pageNo, _ := strconv.Atoi(page)
-		category, ok := getCategory(c)
-		if !ok {
-			w.WriteHeader(500)
-			err = fmt.Errorf("invalid category")
-			goto render
-		}
 
-		res, errors, err = doSearch(r, category, query, pageNo)
+		res, errors, err = doSearch(r, query, pageNo)
 		if err != nil {
 			// Set a failure response code.
 			// Everything else is handled by the template.
 			w.WriteHeader(500)
 		}
 
-	render:
 		templateExecute(w, "search.html", tmplData{
 			Title:   query,
 			Query:   query,

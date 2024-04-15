@@ -18,8 +18,7 @@ type google struct {
 }
 
 var (
-	_ search.GeneralSearcher = &google{}
-	_ search.NewsSearcher    = &google{}
+	_ search.Engine = &google{}
 )
 
 func init() {
@@ -91,41 +90,8 @@ func (g *google) parseGeneral(doc *goquery.Document) ([]search.Result, error) {
 	return results, nil
 }
 
-// Parses news query results.
-func (g *google) parseNews(doc *goquery.Document) ([]search.Result, error) {
-	// News stuff is done a bit differently than normal but isn't too hard to parse.
-	elem := doc.Find("#rso > div > div").Children()
-
-	// And there's all of our news results.
-	results := make([]search.Result, int(elem.Length()))
-
-	for i := range results {
-		v := search.Result{}
-
-		// Everything is wrapped in the a element.
-		a := elem.Eq(i).Find("div > div > a")
-		v.Link, _ = a.Attr("href")
-		v.Link = search.CleanURL(v.Link)
-
-		e := a.Children()
-
-		// Title is followed by the description.
-		// The role is a pretty good way to find the title.
-		title := e.Find(`div[role="heading"]`)
-		desc := title.Next()
-
-		v.Title = title.Text()
-		v.Description = strings.TrimSpace(desc.Text())
-		v.Sources = []string{g.name}
-
-		results[i] = v
-	}
-
-	return results, nil
-}
-
 // Search attempts to query the engine and returns a number of results.
-func (g *google) GeneralSearch(ctx context.Context, query string, page int) ([]search.Result, error) {
+func (g *google) Search(ctx context.Context, query string, page int) ([]search.Result, error) {
 	form := url.Values{}
 
 	form.Set("q", query)
@@ -156,41 +122,6 @@ func (g *google) GeneralSearch(ctx context.Context, query string, page int) ([]s
 	}
 
 	return g.parseGeneral(doc)
-}
-
-// NewsSearch attempts to query the engine and returns a number of results.
-func (g *google) NewsSearch(ctx context.Context, query string, page int) ([]search.Result, error) {
-	form := url.Values{}
-
-	form.Set("q", query)
-	form.Set("tbm", "nws")
-
-	if page >= 1 {
-		form.Set("start", fmt.Sprint(page*10))
-	}
-
-	ctx, cancel := g.http.Context(ctx)
-	defer cancel()
-
-	res, err := g.http.Get(
-		ctx,
-		fmt.Sprintf("https://www.google.com/search?%s", form.Encode()),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := res.BodyUncompressed()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read body: %w", err)
-	}
-
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse html: %w", err)
-	}
-
-	return g.parseNews(doc)
 }
 
 // Ping checks to see if the engine is reachable.

@@ -19,7 +19,7 @@ type yahoo struct {
 }
 
 var (
-	_ search.GeneralSearcher = &yahoo{}
+	_ search.Engine = &yahoo{}
 )
 
 func init() {
@@ -55,8 +55,8 @@ func decodeYahooHref(href string) string {
 	return newHref
 }
 
-// GeneralSearch attempts to query the engine and returns a number of results.
-func (b *yahoo) GeneralSearch(ctx context.Context, query string, page int) ([]search.Result, error) {
+// Search attempts to query the engine and returns a number of results.
+func (b *yahoo) Search(ctx context.Context, query string, page int) ([]search.Result, error) {
 	form := url.Values{}
 
 	form.Set("p", query)

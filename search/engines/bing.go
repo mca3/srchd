@@ -18,7 +18,7 @@ type bing struct {
 }
 
 var (
-	_ search.GeneralSearcher = &bing{}
+	_ search.Engine = &bing{}
 )
 
 func init() {
@@ -30,8 +30,8 @@ func init() {
 	})
 }
 
-// GeneralSearch attempts to query the engine and returns a number of results.
-func (b *bing) GeneralSearch(ctx context.Context, query string, page int) ([]search.Result, error) {
+// Search attempts to query the engine and returns a number of results.
+func (b *bing) Search(ctx context.Context, query string, page int) ([]search.Result, error) {
 	form := url.Values{}
 
 	form.Set("q", query)
