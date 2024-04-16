@@ -8,8 +8,13 @@ body {
 	color: #3c3836;
 }
 
-header, footer {
+header {
 	margin: 4em 0;
+	text-align: center;
+}
+
+footer {
+	margin: 2em 0 1em;
 	text-align: center;
 }
 

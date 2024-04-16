@@ -56,6 +56,9 @@ var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
 	},
 	"strIn":  slices.Contains[[]string],
 	"timing": getTiming,
+	"version": func() string {
+		return Version
+	},
 }).ParseFS(tmplFS, "views/*.html", "views/*.xml"))
 
 func templateExecute(out io.Writer, name string, data any) {
