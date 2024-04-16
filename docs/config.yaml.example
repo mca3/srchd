@@ -1,0 +1,19 @@
+engines:
+  wiby:
+    weight: 0.5
+  google:
+    weight: 1.5
+  wikipedia:
+    type: mediawiki
+    endpoint: https://en.wikipedia.org/w/api.php
+rewrite:
+  - hostname: youtube.com
+    replace: yewtu.be
+  - hostname: www.youtube.com
+    replace: yewtu.be
+  - hostname: reddit.com
+    replace: old.reddit.com
+  - hostname: www.reddit.com
+    replace: old.reddit.com
+disabled:
+  - wikipedia
