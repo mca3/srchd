@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -11,17 +10,39 @@ import (
 	"time"
 
 	"git.sr.ht/~cmcevoy/srchd/search"
+	"gopkg.in/yaml.v3"
 )
 
 type config struct {
-	Addr         string
-	Rewrite      []rewriteRule
-	PingInterval timeDuration `json:"ping_interval"`
-	BaseURL      string       `json:"base_url"`
-	Pprof        string
+	// Addr is the address that the HTTP server listens on.
+	Addr string
 
-	Engines  map[string]search.Config `json:"engines"`
-	Disabled []string                 `json:"disabled"`
+	// BaseURL is the address that the HTTP server is *served* on.
+	// This can be different, such as if you are listening on
+	// localhost:8080 but access it through example.com.
+	BaseURL string `yaml:"base_url"`
+
+	// Rewrite/drop rules.
+	Rewrite []rewriteRule
+
+	// Determines the interval to check the connection to certain engines.
+	PingInterval timeDuration `yaml:"ping_interval"`
+
+	// Pprof specifies an address to serve pprof on.
+	// It cannot listen on the same port as Addr.
+	//
+	// This has no default and should be turned off unless you know what
+	// you are doing.
+	Pprof string
+
+	// Engines specifies configuration for engines.
+	//
+	// An engine that is in here is implicitly enabled unless it also
+	// exists in the Disabled field.
+	Engines map[string]search.Config `yaml:"engines"`
+
+	// Disabled lists the names of engines to not initialize.
+	Disabled []string `yaml:"disabled"`
 }
 
 // timeDuration is a wrapper on time.Duration which allows the decoding of
@@ -31,9 +52,14 @@ type timeDuration struct {
 }
 
 type rewriteRule struct {
-	Regexp      string `json:"find"`
-	Hostname    string `json:"hostname"`
-	ReplaceWith string `json:"replace"`
+	// Regular expression that matches against the link of a search result.
+	Regexp string `yaml:"find"`
+
+	// Matches an exact hostname.
+	Hostname string `yaml:"hostname"`
+
+	// Replace the affected part with this value.
+	ReplaceWith string `yaml:"replace"`
 
 	r *regexp.Regexp
 }
@@ -55,7 +81,7 @@ func loadConfig(path string) error {
 	}
 	defer h.Close()
 
-	if err := json.NewDecoder(h).Decode(&cfg); err != nil {
+	if err := yaml.NewDecoder(h).Decode(&cfg); err != nil {
 		return err
 	}
 
@@ -111,15 +137,16 @@ func rewriteUrl(in string) string {
 	return in
 }
 
-func (t *timeDuration) UnmarshalJSON(data []byte) error {
-	var err error
-
-	str := ""
-	if err = json.Unmarshal(data, &str); err != nil {
-		return err
+func (t *timeDuration) UnmarshalYAML(data *yaml.Node) error {
+	// This looks extremely weird, and I agree, but the point is that the
+	// line below checks to see if data is a string or not.
+	// I have taken the time to comprehend the docs just enough to say this.
+	if data.Kind != yaml.ScalarNode || data.Tag != "!!str" {
+		return fmt.Errorf("expected string, got %v", data.Tag)
 	}
 
-	t.Duration, err = time.ParseDuration(str)
+	var err error
+	t.Duration, err = time.ParseDuration(data.Value)
 	return err
 }
 

@@ -44,7 +44,7 @@ var tmplFS embed.FS
 var staticFS embed.FS
 
 var (
-	configPath = flag.String("conf", "", "configuration file; ./config.json will be used if it exists")
+	configPath = flag.String("conf", "", "configuration file; ./config.yaml will be used if it exists")
 )
 
 var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
@@ -66,9 +66,9 @@ func templateExecute(out io.Writer, name string, data any) {
 
 func main() {
 	if *configPath == "" {
-		// Try config.json
-		if _, err := os.Stat("./config.json"); err == nil {
-			*configPath = "./config.json"
+		// Try config.yaml
+		if _, err := os.Stat("./config.yaml"); err == nil {
+			*configPath = "./config.yaml"
 		}
 	}
 

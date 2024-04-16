@@ -6,6 +6,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.9.1
 	github.com/go-chi/chi/v5 v5.0.12
 	github.com/valyala/fasthttp v1.52.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

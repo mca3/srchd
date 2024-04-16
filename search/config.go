@@ -1,9 +1,10 @@
 package search
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 // [Engine] configuration.
@@ -11,8 +12,8 @@ import (
 //
 // This struct should not be modified once passed to an engine.
 //
-// The zero-value is safe to use, and the struct itself may be unmarshaled to
-// using [encoding/json] in configuration files.
+// The zero-value is safe to use, and the struct itself may be unmarshaled in
+// YAML configuration files.
 type Config struct {
 	// Type determines what backend to use for this engine.
 	// For example, if you wanted to use the "example" engine for
@@ -20,26 +21,26 @@ type Config struct {
 	//
 	// If you leave this blank, then it defaults to Name.
 	// An empty Name and Type is an error.
-	Type string `json:"type,omitempty"`
+	Type string `yaml:"type,omitempty"`
 
 	// Name of the engine; when retrieving search results, this is the
 	// string that would put be in the "sources" field.
 	//
 	// If left blank, then it defaults to Type.
 	// An empty Name and Type is an error.
-	Name string `json:"name,omitempty"`
+	Name string `yaml:"name,omitempty"`
 
 	// User-Agent header value; often set to mimic the Chrome web browser
 	// to get past most bot detection.
 	//
 	// If left empty, then [DefaultUserAgent] is used.
-	UserAgent string `json:"user_agent,omitempty"`
+	UserAgent string `yaml:"user_agent,omitempty"`
 
 	// Timeout is the total amount of time an engine will wait to retrieve
 	// a full HTTP response.
 	//
 	// If set to 0, then [DefaultTimeout] is used.
-	Timeout stringDuration `json:"timeout"`
+	Timeout stringDuration `yaml:"timeout"`
 
 	// Weight determines the initial amount of score for a result.
 	//
@@ -47,21 +48,21 @@ type Config struct {
 	//
 	// Note that this field *should not* affect the engines themselves;
 	// this field exists here solely for ranking in srchd.
-	Weight float64 `json:"weight"`
+	Weight float64 `yaml:"weight"`
 
 	// Debug logs extra information when doing HTTP requests, and may also
 	// enable debugging features in an engine.
-	Debug bool `json:"debug"`
+	Debug bool `yaml:"debug"`
 
 	// Extra contains extra settings that have no corresponding field in
 	// this struct.
 	// They are generally [Engine] specific, and may or may not be
 	// optional.
-	Extra map[string]any `json:"-"`
+	Extra map[string]any `yaml:"-"`
 }
 
 // Wrapper struct to allow decoding time.Duration string values (such as "5s"
-// or "15m") directly from [encoding/json].
+// or "15m") directly from YAML.
 type stringDuration struct {
 	time.Duration
 }
@@ -136,25 +137,31 @@ func (c Config) NewHttpClient() *HttpClient {
 // UnmarshalJSON parses a JSON configuration.
 //
 // This is required so we can use extra keys.
-func (c *Config) UnmarshalJSON(b []byte) error {
-	// Long story short here: We cannot get unknown keys through
-	// encoding/json unless we use some tricks and unmarshal twice.
+func (c *Config) UnmarshalYAML(data *yaml.Node) error {
+	// Long story short here: We cannot get unknown keys through yaml
+	// unless we use some tricks and unmarshal twice.
 	// It's not ideal, but we only do this once on startup.
 
+	// Ensure we even have the right datatype to begin with.
+	if data.Kind != yaml.MappingNode {
+		// TODO: This is not the way to go.
+		return fmt.Errorf("expected mapping, got %v", data.Kind)
+	}
+
 	// Define a new type to lose all receiver functions.
-	// This means that Config won't satisfy json.Unmarshaler anymore, so no
+	// This means that Config won't satisfy yaml.Unmarshaler anymore, so no
 	// recursion occurs.
 	type _Config Config
 
-	// Attempt to unmarshal b into our new type.
+	// Attempt to unmarshal the data into our new type.
 	var d _Config
-	if err := json.Unmarshal(b, &d); err != nil {
+	if err := data.Decode(&d); err != nil {
 		return err
 	}
 
 	// Now unmarshal b again, but this time into "Extra".
 	// This includes all of the extra keys.
-	if err := json.Unmarshal(b, &d.Extra); err != nil {
+	if err := data.Decode(&d.Extra); err != nil {
 		return err
 	}
 
@@ -171,20 +178,16 @@ func (c *Config) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// UnmarshalJSON attempts to parse a JSON string into a [time.Duration].
-func (w *stringDuration) UnmarshalJSON(b []byte) error {
-	// Attempt to unmarshal b into a string.
-	var s string
-	if err := json.Unmarshal(b, &s); err != nil {
-		return err
+// UnmarshalYAML attempts to parse a string into a [time.Duration].
+func (t *stringDuration) UnmarshalYAML(data *yaml.Node) error {
+	// This looks extremely weird, and I agree, but the point is that the
+	// line below checks to see if data is a string or not.
+	// I have taken the time to comprehend the docs just enough to say this.
+	if data.Kind != yaml.ScalarNode || data.Tag != "!!str" {
+		return fmt.Errorf("expected string, got %v", data.Tag)
 	}
 
-	// Try to parse the string as a duration.
-	d, err := time.ParseDuration(s)
-	if err != nil {
-		return err
-	}
-
-	w.Duration = d
-	return nil
+	var err error
+	t.Duration, err = time.ParseDuration(data.Value)
+	return err
 }
