@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log"
 	"net/url"
 	"strings"
 
@@ -13,8 +14,9 @@ import (
 )
 
 type google struct {
-	name string
-	http *search.HttpClient
+	name  string
+	http  *search.HttpClient
+	debug bool
 }
 
 var (
@@ -24,8 +26,9 @@ var (
 func init() {
 	search.Add("google", true, func(config search.Config) (search.Engine, error) {
 		return &google{
-			name: config.Name,
-			http: config.NewHttpClient(),
+			name:  config.Name,
+			http:  config.NewHttpClient(),
+			debug: config.Debug,
 		}, nil
 	})
 }
@@ -80,6 +83,26 @@ func (g *google) parseGeneral(doc *goquery.Document) ([]search.Result, error) {
 
 			desc = e.Eq(2).Children()
 			v.Description = strings.TrimSpace(desc.Text())
+		}
+
+		// Debug code to log the HTML of results missing some attributes.
+		// The code I wrote is buggy and because you aren't really
+		// meant to ingest HTML mechanically, prone to breakage.
+		if g.debug && (v.Title == "" || v.Link == "" || v.Description == "") {
+			// Collect a list of things that are missing.
+			missing := []string{}
+			if v.Title == "" {
+				missing = append(missing, "title")
+			}
+			if v.Link == "" {
+				missing = append(missing, "link")
+			}
+			if v.Description == "" {
+				missing = append(missing, "description")
+			}
+
+			ehtml, _ := e.Html()
+			log.Printf("google: missing %v: %v", missing, ehtml)
 		}
 
 		v.Sources = []string{g.name}
