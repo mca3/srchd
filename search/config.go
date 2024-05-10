@@ -30,10 +30,11 @@ type Config struct {
 	// An empty Name and Type is an error.
 	Name string `yaml:"name,omitempty"`
 
-	// User-Agent header value; often set to mimic the Chrome web browser
-	// to get past most bot detection.
+	// Specifies the user agent that is used when making requests to the engine.
 	//
-	// If left empty, then [DefaultUserAgent] is used.
+	// srchd tries to mock a Chrome browser and as such uses a Chrome user
+	// agent by default; see [DefaultUserAgent].
+	// You should not change this value unless you have a reason to.
 	UserAgent string `yaml:"user_agent,omitempty"`
 
 	// Timeout is the total amount of time an engine will wait to retrieve
@@ -42,7 +43,16 @@ type Config struct {
 	// If set to 0, then [DefaultTimeout] is used.
 	Timeout stringDuration `yaml:"timeout"`
 
-	// Weight determines the initial amount of score for a result.
+	// Weight determines the order in which results are ranked on srchd's
+	// frontend.
+	//
+	// An engine with a higher weight will have its results placed higher
+	// than those of lower weight.
+	//
+	// Note that results are combined with the weight taken into
+	// consideration and have their score recalculated, so if multiple
+	// search engines return the same result then it will likely be your
+	// top search result.
 	//
 	// A zero weight is analogous to a weight of 1.0.
 	//
@@ -50,14 +60,19 @@ type Config struct {
 	// this field exists here solely for ranking in srchd.
 	Weight float64 `yaml:"weight"`
 
-	// Debug logs extra information when doing HTTP requests, and may also
-	// enable debugging features in an engine.
+	// Enable HTTP request logging and possibly extra debugging settings in
+	// the engine itself.
+	//
+	// You should always leave this at false unless you are debugging an
+	// engine, because it reveals information about searches.
 	Debug bool `yaml:"debug"`
 
 	// Extra contains extra settings that have no corresponding field in
 	// this struct.
-	// They are generally [Engine] specific, and may or may not be
-	// optional.
+	//
+	// The info contained within is generally [Engine] specific, and may or
+	// may not be optional.
+	// Refer to your [Engine] for possible/necessary configuration values.
 	Extra map[string]any `yaml:"-"`
 }
 

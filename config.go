@@ -13,35 +13,70 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Top-level configuration structure.
+//
+// The fields of this struct are setup to be unmarshaled to by a YAML parser,
+// usually from a file in srchd's working directory named `config.yaml`.
 type config struct {
-	// Addr is the address that the HTTP server listens on.
+	// Specifies the address that the HTTP server listens on.
+	//
+	// By default, it is `:8080`, which means it will listen on all
+	// interfaces on port 8080.
 	Addr string
 
-	// BaseURL is the address that the HTTP server is *served* on.
-	// This can be different, such as if you are listening on
-	// localhost:8080 but access it through example.com.
+	// The base URL is the address that the HTTP server is *served* on,
+	// i.e. what you point your web browser at.
+	// This can be different from `addr`, such as if you are listening on
+	// `localhost:8080` but access srchd through `example.com`.
+	//
+	// The default is `http://localhost:8080`.
 	BaseURL string `yaml:"base_url"`
 
-	// Rewrite/drop rules.
-	Rewrite []rewriteRule
+	// Specifies a list of rules to rewrite domain names in results.
+	//
+	// This will eventually provide more functionality, but works for my
+	// uses right now.
+	Rewrite []struct {
+		// Regular expression that matches against the link of a search
+		// result.
+		Regexp string `yaml:"find"`
+
+		// Matches an exact hostname.
+		Hostname string `yaml:"hostname"`
+
+		// Replace the affected part with this value.
+		ReplaceWith string `yaml:"replace"`
+
+		r *regexp.Regexp
+	}
 
 	// Determines the interval to check the connection to certain engines.
+	// This uses Go's [time.Duration], so you can specify values like `5m`
+	// or `12h`.
+	//
+	// The default is `15m`.
 	PingInterval timeDuration `yaml:"ping_interval"`
 
-	// Pprof specifies an address to serve pprof on.
+	// pprof specifies an address to serve pprof on.
 	// It cannot listen on the same port as Addr.
 	//
-	// This has no default and should be turned off unless you know what
-	// you are doing.
+	// There is a very good chance this means absolutely nothing to you; it
+	// can be safely ignored.
 	Pprof string
 
-	// Engines specifies configuration for engines.
+	// Specifies configuration settings for engines supported by srchd.
+	// The key of an engine specifies the name of the engine, and the value
+	// is the configuration of that engine.
 	//
-	// An engine that is in here is implicitly enabled unless it also
-	// exists in the Disabled field.
+	// Engines that are listed here, are not enabled by default, and are
+	// not explicitly disabled will be implicitly enabled by having a
+	// configuration.
 	Engines map[string]search.Config `yaml:"engines"`
 
-	// Disabled lists the names of engines to not initialize.
+	// A list of engine names that should be explicitly disabled.
+	//
+	// Engines listed here will never be used at any point by srchd, even
+	// if requested by a client.
 	Disabled []string `yaml:"disabled"`
 }
 
@@ -51,19 +86,7 @@ type timeDuration struct {
 	time.Duration
 }
 
-type rewriteRule struct {
-	// Regular expression that matches against the link of a search result.
-	Regexp string `yaml:"find"`
-
-	// Matches an exact hostname.
-	Hostname string `yaml:"hostname"`
-
-	// Replace the affected part with this value.
-	ReplaceWith string `yaml:"replace"`
-
-	r *regexp.Regexp
-}
-
+// Default configuration.
 var defaultConfig = config{
 	Addr:         ":8080",
 	BaseURL:      "http://localhost:8080",
