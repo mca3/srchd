@@ -101,7 +101,7 @@ func (g *google) parseGeneral(doc *goquery.Document) ([]search.Result, error) {
 				missing = append(missing, "description")
 			}
 
-			ehtml, _ := e.Html()
+			ehtml, _ := elem.Eq(i).Html()
 			log.Printf("google: missing %v: %v", missing, ehtml)
 		}
 
