@@ -81,8 +81,20 @@ func New(driver string, cfg search.Config) *Tester {
 // If -update was passed to go test, then the search queries will actually be
 // performed and their results will be saved to disk.
 func (tt *Tester) RunTest(t *testing.T, query string) {
+	// Test to see if this exists.
+	fp := filepath.Join("testdata", tt.driver, fnencode(query))
+	notExist := false
+	if _, err := os.Stat(fp); err != nil {
+		// I *could* check the error, yes...
+		notExist = true
+	}
+
+	// Determine what mode to enter
 	testFn := tt.mockTestFn(query)
-	if *update {
+	if *update || notExist {
+		if !*update {
+			t.Logf("automatically entering update mode for %q", query)
+		}
 		testFn = tt.updateTestFn(query)
 	}
 
