@@ -34,7 +34,7 @@ func init() {
 }
 
 // Parses a general query results page.
-func (g *google) parseGeneral(doc *goquery.Document) ([]search.Result, error) {
+func (g *google) parseGeneral(doc *goquery.Document, query string) ([]search.Result, error) {
 	// Because we don't use the non-JS variant, we are given an extra class
 	// on search results which is *very* helpful!
 	// And it doesn't change occasionally.
@@ -103,7 +103,7 @@ func (g *google) parseGeneral(doc *goquery.Document) ([]search.Result, error) {
 			}
 
 			ehtml, _ := elem.Eq(i).Html()
-			log.Printf("google: missing %v: %v", missing, ehtml)
+			log.Printf("google: query %q: missing %v: %v", query, missing, ehtml)
 		}
 
 		v.Sources = []string{g.name}
@@ -145,7 +145,7 @@ func (g *google) Search(ctx context.Context, query string, page int) ([]search.R
 		return nil, fmt.Errorf("unable to parse html: %w", err)
 	}
 
-	return g.parseGeneral(doc)
+	return g.parseGeneral(doc, query)
 }
 
 // Ping checks to see if the engine is reachable.
