@@ -81,6 +81,17 @@ func (h *HttpClient) ua() string {
 	return h.UserAgent
 }
 
+// Client fetches the [github.com/valyala/fasthttp.Client] for this specific
+// HTTP client.
+//
+// Do not change fields of the returned Client struct once you have performed a
+// request.
+func (h *HttpClient) Client() *fasthttp.Client {
+	// This is a function because the HttpClient is lazily initialized.
+	h.ensureReady()
+	return h.http
+}
+
 // New creates a new HTTP request.
 func (h *HttpClient) New(ctx context.Context, method, url string, body []byte, contentType ...string) (*fasthttp.Request, error) {
 	h.ensureReady()

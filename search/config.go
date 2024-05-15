@@ -74,6 +74,15 @@ type Config struct {
 	// may not be optional.
 	// Refer to your [Engine] for possible/necessary configuration values.
 	Extra map[string]any `yaml:"-"`
+
+	// Provide a predetermined HTTP client instead of creating one from the
+	// settings; it is recommended that you still create it using
+	// NewHttpClient, but if this field is filled then NewHttpClient will
+	// return this irregardless of the configuration.
+	//
+	// This field exists primarily for mocking HTTP responses when
+	// performing testing.
+	HttpClient *HttpClient `yaml:"-"`
 }
 
 // Wrapper struct to allow decoding time.Duration string values (such as "5s"
@@ -127,7 +136,15 @@ func (c Config) MustNew() Engine {
 }
 
 // Create a [HttpClient] according to values set in the configuration.
+//
+// Note that if the HttpClient field is specified in the [Config] struct, then
+// its value will be returned.
 func (c Config) NewHttpClient() *HttpClient {
+	if c.HttpClient != nil {
+		// We have a client already created for us.
+		return c.HttpClient
+	}
+
 	// Determine timeout.
 	timeout := c.Timeout.Duration
 	if timeout <= 0 {

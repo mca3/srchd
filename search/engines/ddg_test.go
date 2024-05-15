@@ -1,10 +1,10 @@
 package engines
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
+	"git.sr.ht/~cmcevoy/srchd/internal/engtest"
 	"git.sr.ht/~cmcevoy/srchd/search"
 )
 
@@ -30,46 +30,5 @@ func TestDDGPageParams(t *testing.T) {
 }
 
 func TestDDGSearch(t *testing.T) {
-	d := (search.Config{Type: "ddg"}).MustNew()
-
-	res, err := d.Search(context.Background(), "hello world", 0)
-	if err != nil {
-		panic(err)
-	} else if len(res) == 0 {
-		t.Fatalf("search returned no results")
-	}
-
-	for _, r := range res {
-		t.Logf("title: %s", r.Title)
-		t.Logf("link: %s", r.Link)
-		t.Logf("desc: %s", r.Description)
-	}
-
-	// Ensure page 1 has results
-	res, err = d.Search(context.Background(), "hello world", 1)
-	if err != nil {
-		panic(err)
-	} else if len(res) == 0 {
-		t.Fatalf("search returned no results")
-	}
-
-	for _, r := range res {
-		t.Logf("title: %s", r.Title)
-		t.Logf("link: %s", r.Link)
-		t.Logf("desc: %s", r.Description)
-	}
-
-	// Ensure page 2 has results
-	res, err = d.Search(context.Background(), "hello world", 2)
-	if err != nil {
-		panic(err)
-	} else if len(res) == 0 {
-		t.Fatalf("search returned no results")
-	}
-
-	for _, r := range res {
-		t.Logf("title: %s", r.Title)
-		t.Logf("link: %s", r.Link)
-		t.Logf("desc: %s", r.Description)
-	}
+	engtest.New("ddg", search.Config{}).RunTest(t, "hello world")
 }

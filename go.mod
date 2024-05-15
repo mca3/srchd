@@ -5,7 +5,7 @@ go 1.21.1
 require (
 	github.com/PuerkitoBio/goquery v1.9.2
 	github.com/go-chi/chi/v5 v5.0.12
-	github.com/valyala/fasthttp v1.52.0
+	github.com/valyala/fasthttp v1.53.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
