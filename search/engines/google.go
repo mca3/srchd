@@ -55,7 +55,8 @@ func (g *google) parseGeneral(doc *goquery.Document) ([]search.Result, error) {
 		v := search.Result{}
 
 		e := elem.Eq(i)
-		if v, ok := e.Children().First().Attr("class"); ok && strings.HasPrefix(v, "kp-wholepage") {
+		if goquery.NodeName(e.Children().First()) == "g-section-with-header" || e.Children().First().HasClass("kp-wholepage") {
+			// kp-wholepage:
 			// Somehow goquery puts this into my selector even
 			// though it should be in #rhs and never actually
 			// matter.

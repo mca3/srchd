@@ -30,5 +30,10 @@ func TestDDGPageParams(t *testing.T) {
 }
 
 func TestDDGSearch(t *testing.T) {
-	engtest.New("ddg", search.Config{}).RunTest(t, "hello world")
+	engtest.New("ddg", search.Config{}).RunTests(t,
+		"hello world",
+		"wikipedia",
+		"big bang theory",
+		"exanple", // intentionally misspelled
+	)
 }
