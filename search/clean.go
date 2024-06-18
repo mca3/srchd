@@ -3,6 +3,7 @@ package search
 import (
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 // Parameter names to remove.
@@ -32,6 +33,13 @@ func init() {
 
 // Removes tracking parameters from URLs.
 func CleanURL(url string) string {
+	// Drop the fragment part.
+	// Google in particular likes to use these to highlight specific
+	// regions of text.
+	if idx := strings.IndexRune(url, '#'); idx != -1 {
+		url = url[:idx]
+	}
+
 	for _, re := range cleaningRegexps {
 		// This is written this way for two reasons:
 		// - It allows us to check if the string starts with '?' so we
