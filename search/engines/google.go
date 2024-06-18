@@ -120,6 +120,17 @@ func (g *google) Search(ctx context.Context, query string, page int) ([]search.R
 
 	form.Set("q", query)
 
+	// This specific option may seem nonsensical at first, but here is some context:
+	// https://tedium.co/2024/05/17/google-web-search-make-default/
+	//
+	// The TL;DR is that this returns the "Web" results, sans AI stuff.
+	// I run srchd on a server in the United States which has this sort of
+	// stuff; I don't know if it will fix any issues with the Google
+	// engine, I haven't really looked that deeply into my issues, but I
+	// like just pointing the finger at AI saying that it causes me all
+	// sorts of problems and calling it a day.
+	form.Set("udm", "14")
+
 	if page >= 1 {
 		form.Set("start", fmt.Sprint(page*10))
 	}
