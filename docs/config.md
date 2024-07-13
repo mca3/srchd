@@ -33,6 +33,15 @@ The default is `15m`.
 
 **Example**: `12h` for 12 hours
 
+## `http_proxy`
+
+Specifies the default HTTP proxy.
+Overrides the `HTTP_PROXY` environment variable, but can be overridden by an engine's `http_proxy` setting.
+
+The special value "-" will cause srchd to behave as if the `HTTP_PROXY` environment variable is not set.
+
+By default, this is blank and as such `HTTP_PROXY` will be used if it is set.
+
 ## `pprof`
 
 `pprof` specifies an address to serve [pprof](https://github.com/google/pprof) on.
@@ -130,6 +139,11 @@ An engine with a higher `weight` value will have its results placed higher than 
 Note that results are combined with the `weight` value taken into consideration and have their score recalculated, so if multiple search engines return the same result then it will likely be your top search result.
 
 The default is `1.0`.
+
+### `http_proxy`
+
+Configures a HTTP proxy to send requests through instead of using the one set in the `HTTP_PROXY` environment variable, if any.
+The special value `"-"` explicitly asks to use no proxy at all, i.e. srchd will pretend both `http_proxy` (config) and `$HTTP_PROXY` (environment variable) are not set.
 
 ### `debug`
 

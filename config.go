@@ -57,6 +57,17 @@ type config struct {
 	// The default is `15m`.
 	PingInterval timeDuration `yaml:"ping_interval"`
 
+	// Specifies the default HTTP proxy.
+	// Overrides the HTTP_PROXY environment variable, but can be overridden
+	// by an engine's http_proxy setting.
+	//
+	// The special value "-" will cause srchd to behave as if HTTP_PROXY is
+	// not set.
+	//
+	// By default, this is blank and as such HTTP_PROXY will be used if it
+	// is set.
+	HttpProxy string `yaml:"http_proxy"`
+
 	// pprof specifies an address to serve pprof on.
 	// It cannot listen on the same port as Addr.
 	//
@@ -178,13 +189,24 @@ func (t *timeDuration) UnmarshalYAML(data *yaml.Node) error {
 // Uses the engine's configuration as specified in the configuration, and also
 // merges in the default config.
 func initializeEngine(name string) (search.Engine, error) {
-	cfg, ok := cfg.Engines[name]
+	engCfg, ok := cfg.Engines[name]
 	if !ok {
-		cfg.Type = name
+		// The map returns a zero-struct in this case so this is safe.
+		engCfg.Type = name
 	}
-	cfg.Name = name
+	engCfg.Name = name
 
-	return cfg.New()
+	// Set the HTTP proxy.
+	//
+	// TODO: A global config would be nice.
+	// An older version of config.go did have a "default" engine that was
+	// sorta hacked in after the fact and when I redid the configuration
+	// system it was left out because I didn't have much of a use for it.
+	if engCfg.HttpProxy == "" {
+		engCfg.HttpProxy = cfg.HttpProxy
+	}
+
+	return engCfg.New()
 }
 
 // Determines if a specific engine has been disabled.

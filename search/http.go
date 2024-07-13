@@ -8,9 +8,10 @@ import (
 	"time"
 
 	"github.com/valyala/fasthttp"
+	"github.com/valyala/fasthttp/fasthttpproxy"
 )
 
-// HttpClient is a helpful wrapper around [net/fasthttp.Client] that does useful
+// HttpClient is a helpful wrapper around [github.com/valyala/fasthttp.Client] that does useful
 // things to HTTP requests and responses you would've had to write anyway.
 //
 // The zero value is ready to use.
@@ -27,6 +28,12 @@ type HttpClient struct {
 	// Debug logs all HTTP requests sent through this HttpClient if it is
 	// true before the first request is made.
 	Debug bool
+
+	// Send requests using this HTTP proxy.
+	//
+	// This does not default to the HTTP_PROXY environment variable and
+	// must be explicitly set to use a proxy for all HTTP requests.
+	HttpProxy string
 
 	http *fasthttp.Client
 	once sync.Once
@@ -58,6 +65,11 @@ func (h *HttpClient) ensureReady() {
 				DialDualStack:            true,
 				ReadTimeout:              h.Timeout,
 				WriteTimeout:             h.Timeout,
+			}
+
+			if h.HttpProxy != "" {
+				// HTTP proxy was configured, use it.
+				h.http.Dial = fasthttpproxy.FasthttpHTTPDialer(h.HttpProxy)
 			}
 		}
 

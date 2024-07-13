@@ -2,6 +2,7 @@ package search
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -66,6 +67,16 @@ type Config struct {
 	// You should always leave this at false unless you are debugging an
 	// engine, because it reveals information about searches.
 	Debug bool `yaml:"debug"`
+
+	// Configures a HTTP proxy to be used by this engine.
+	// Useful if you want to pipe requests elsewhere, such as to another
+	// country or through something like Tor.
+	//
+	// If this value is not set, then it falls back to the HTTP_PROXY
+	// environment variable.
+	// If this value is set to "-", then no proxy will be used regardless
+	// of what HTTP_PROXY is set to.
+	HttpProxy string `yaml:"http_proxy"`
 
 	// Extra contains extra settings that have no corresponding field in
 	// this struct.
@@ -159,9 +170,21 @@ func (c Config) NewHttpClient() *HttpClient {
 		userAgent = DefaultUserAgent
 	}
 
+	// Determine the HTTP proxy to use for this engine.
+	httpProxy := c.HttpProxy
+	if httpProxy == "" {
+		// Try to pull a value from the environment.
+		// At worst, this does nothing and sets it to "".
+		httpProxy = os.Getenv("HTTP_PROXY")
+	} else if httpProxy == "-" {
+		// Special value to force no configuration.
+		httpProxy = ""
+	}
+
 	return &HttpClient{
 		Timeout:   timeout,
 		UserAgent: userAgent,
+		HttpProxy: httpProxy,
 		Debug:     c.Debug,
 	}
 }
