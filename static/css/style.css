@@ -73,9 +73,10 @@ a:visited:hover, .result > a:visited:hover .title {
 }
 
 #search.index  {
-	width: 36%;
+	width: 25em;
+	max-width: 90%;
 	text-align: center;
-	margin: auto;
+	margin: 4em auto;
 	border: 1px solid #928374;
 }
 
