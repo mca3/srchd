@@ -119,6 +119,12 @@ a:visited:hover, .result > a:visited:hover .title {
 	padding: 0.5em;
 }
 
+#warning {
+	background: #fabd2f;
+	border: 1px solid #d79921;
+	padding: 0.5em;
+}
+
 .result {
 	margin: 1em 0;
 }
@@ -195,9 +201,14 @@ a:visited:hover, .result > a:visited:hover .title {
 		background: #282828;
 	}
 
-	#errors {
+	#error {
 		background: #cc241d;
 		border: 1px solid #fb4934;
+	}
+
+	#warning {
+		background: #d79921;
+		border: 1px solid #fabd2f;
 	}
 
 	.result .title {

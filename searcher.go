@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,10 +14,11 @@ import (
 	"git.sr.ht/~cmcevoy/srchd/search"
 )
 
-var engines = map[string]search.Engine{}
-
 const maxTitleLen = 100
 const maxDescriptionLen = 300
+
+var engines = map[string]search.Engine{}
+var errAllFailed = errors.New("no engines performed a query successfully")
 
 // Determines the default set of requested engines from the request.
 func findWantedEngines(r *http.Request) []string {
@@ -221,5 +223,12 @@ func doSearch(r *http.Request, requestQuery string, page int) ([]search.Result, 
 
 	wg.Wait()
 
+	// Check to see if all engines failed.
+	if len(errors) == len(engines) {
+		// Everything did fail.
+		return nil, errors, errAllFailed
+	}
+
+	// Process the results and return.
 	return processResults(results), errors, nil
 }

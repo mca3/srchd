@@ -130,6 +130,9 @@ func main() {
 			// Set a failure response code.
 			// Everything else is handled by the template.
 			w.WriteHeader(500)
+		} else if len(res) == 0 {
+			// No results found, set the status code to a 404.
+			w.WriteHeader(404)
 		}
 
 		templateExecute(w, "search.html", tmplData{
