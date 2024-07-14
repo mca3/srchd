@@ -54,8 +54,8 @@ var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
 	"dec": func(x int) int {
 		return x - 1
 	},
-	"strIn":  slices.Contains[[]string],
-	"timing": getTiming,
+	"strIn":         slices.Contains[[]string],
+	"engineLatency": getEngineLatency,
 	"version": func() string {
 		return Version
 	},
@@ -101,6 +101,8 @@ func main() {
 	}
 
 	h := chi.NewRouter()
+
+	// Auth stuff
 
 	h.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
 		var res []search.Result

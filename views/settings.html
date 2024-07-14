@@ -16,7 +16,7 @@
 			<li>
 				<input type="checkbox" id="engine-{{.}}" name="engine" value="{{.}}" {{if or (strIn $sel .) (eq (len $sel) 0)}}checked{{end}}>
 				<label for="engine-{{.}}">{{.}}</label>
-				(timing: {{timing .}})
+				(latency: {{engineLatency .}})
 			</li>
 			{{end}}
 		</ul>
