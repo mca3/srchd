@@ -5,10 +5,10 @@ import (
 	"embed"
 	"html/template"
 	"io"
+	"io/fs"
 	"log"
 	"net"
 	"net/http"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -179,28 +179,14 @@ func serveHTTP(ctx context.Context) error {
 		http.Redirect(w, r, "/settings", http.StatusFound)
 	})
 
-	staticHandler := func(w http.ResponseWriter, r *http.Request) {
-		// TODO: This should probably be replaced with something
-		// infinitely better.
-
-		fp := filepath.Join("static", r.URL.EscapedPath())
-		h, err := staticFS.Open(fp)
-		if err != nil {
-			http.Error(w, "not found", 404)
-			return
-		}
-		defer h.Close()
-
-		// Hack
-		if strings.HasSuffix(fp, ".css") {
-			w.Header().Set("Content-Type", "text/css")
-		}
-
-		io.Copy(w, h)
+	subFS, err := fs.Sub(staticFS, "static")
+	if err != nil {
+		panic(err)
 	}
 
-	h.Get("/css/*", staticHandler)
-	h.Get("/robots.txt", staticHandler)
+	fileServer := http.FileServer(http.FS(subFS))
+	h.Handle("/css/*", fileServer)
+	h.Handle("/robots.txt", fileServer)
 
 	// With the HTTP stuff dealt with, let's setup the server
 	srv := &http.Server{
@@ -226,7 +212,7 @@ func serveHTTP(ctx context.Context) error {
 	}()
 
 	log.Printf("listening on %s", cfg.Addr)
-	err := srv.ListenAndServe()
+	err = srv.ListenAndServe()
 
 	if ctx.Err() != nil {
 		// If this is not nil, then the server was closed because the
