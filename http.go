@@ -140,10 +140,6 @@ func serveHTTP(ctx context.Context) error {
 		// Grab a list of currently enabled engines.
 		// This is used to mark engines as checked.
 		wanted := findWantedEngines(r)
-		if len(wanted) == 0 {
-			// Nothing enabled so use the default ones.
-			wanted = search.DefaultEngines()
-		}
 
 		templateExecute(w, "settings.html", confData{
 			tmplData: tmplData{

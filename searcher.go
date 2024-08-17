@@ -21,10 +21,15 @@ var engines = map[string]search.Engine{}
 var errAllFailed = errors.New("no engines performed a query successfully")
 
 // Determines the default set of requested engines from the request.
+//
+// If the user didn't configure any specific engines or if the cookie they gave
+// us is otherwise invalid, findWantedEngines returns [search.DefaultEngines].
 func findWantedEngines(r *http.Request) []string {
 	cookie, err := r.Cookie("engines")
-	if err != nil {
-		return nil
+	if err != nil || strings.TrimSpace(cookie.Value) == "" {
+		// Pretend the cookie doesn't exist, just return
+		// DefaultEngines.
+		return search.DefaultEngines()
 	}
 
 	return strings.Split(strings.TrimSpace(cookie.Value), ",")
@@ -177,9 +182,6 @@ func doSearch(r *http.Request, requestQuery string, page int) ([]search.Result, 
 	wg := sync.WaitGroup{}
 
 	wantEngines, query := processOperators(requestQuery)
-	if len(wantEngines) == 0 {
-		wantEngines = findWantedEngines(r)
-	}
 
 	if len(query) == 0 {
 		// Empty queries are likely an error.
