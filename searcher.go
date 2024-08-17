@@ -192,35 +192,39 @@ func doSearch(r *http.Request, requestQuery string, page int) ([]search.Result, 
 	results := []search.Result{}
 	mu := sync.Mutex{}
 
+	// Called as a goroutine for all requested engines in the loop below.
+	fn := func(name string, e search.Engine) {
+		defer wg.Done()
+
+		res, err := e.Search(r.Context(), query, page)
+
+		mu.Lock()
+		defer mu.Unlock()
+
+		if err != nil {
+			if errors == nil {
+				// Lazily initialize the map.
+				// In most cases, there will be no errors so
+				// there's no point in allocating it.
+				errors = map[string]error{}
+			}
+
+			errors[name] = err
+			log.Printf("searching %q failed: %v", name, err)
+
+			return
+		}
+
+		results = append(results, res...)
+	}
+
 	for name, eng := range engines {
 		if len(wantEngines) > 0 && !slices.Contains(wantEngines, name) {
 			continue
 		}
 
 		wg.Add(1)
-		go func(name string, e search.Engine) {
-			defer wg.Done()
-
-			res, err := e.Search(r.Context(), query, page)
-
-			mu.Lock()
-			defer mu.Unlock()
-
-			if err != nil {
-				if errors == nil {
-					// Lazily initialize the map.
-					// In most cases, there will be no errors so there's no point in allocating it.
-					errors = map[string]error{}
-				}
-
-				errors[name] = err
-				log.Printf("searching %q failed: %v", name, err)
-
-				return
-			}
-
-			results = append(results, res...)
-		}(name, eng)
+		go fn(name, eng)
 	}
 
 	wg.Wait()
