@@ -1,12 +1,15 @@
 package engtest
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/base32"
 	"encoding/gob"
+	"io"
 	"os"
 	"path/filepath"
 
+	"github.com/andybalholm/brotli"
 	"github.com/valyala/fasthttp"
 )
 
@@ -94,6 +97,9 @@ func (ms *mockTransport) updateHandle(req *fasthttp.Request, res *fasthttp.Respo
 	// Perform the actual request
 	client := &fasthttp.Client{
 		DialDualStack: true,
+
+		// This is required because of Brave.
+		ReadBufferSize: 8192,
 
 		// Don't add anything else to my request.
 		NoDefaultUserAgentHeader: true,
@@ -186,10 +192,25 @@ func getResponseInfo(ctx *fasthttp.Response) response {
 	// It might be nice to have it compressed on disk, but I would rather
 	// it be for the entire test file and not just for those who had a
 	// compressed response sent to them.
-	body, err := ctx.BodyUncompressed()
-	if err != nil {
-		panic(err)
+	//
+	// Also, we have to do the same Brotli shenanigans as we do in brave
+	// here.
+	// For more info as to why, please look at search/engines/brave.go.
+	var body []byte
+	var err error
+	if string(ctx.Header.ContentEncoding()) == "br" {
+		br := brotli.NewReader(bytes.NewReader(ctx.Body()))
+		body, err = io.ReadAll(br)
+		if err != nil && err.Error() != "brotli: excessive input" {
+			panic(err)
+		}
+	} else {
+		body, err = ctx.BodyUncompressed()
+		if err != nil {
+			panic(err)
+		}
 	}
+
 	if len(body) > 0 {
 		res.Body = make([]byte, len(body))
 		copy(res.Body, body)

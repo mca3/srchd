@@ -34,6 +34,7 @@ An example configuration file can be found at `./docs/config.yaml.example` and d
 srchd is a young project and as such doesn't have a lot of support.
 
 - Bing (likely broken, disabled by default)
+- Brave
 - DuckDuckGo
 - Google
 - Mediawiki (e.g. Wikipedia, requires configuration)
