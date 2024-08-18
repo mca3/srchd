@@ -69,6 +69,7 @@ func (h *FasthttpClient) ensureReady() {
 			h.http = &fasthttp.Client{
 				NoDefaultUserAgentHeader: true,
 				DialDualStack:            true,
+				StreamResponseBody:       true,
 				ReadTimeout:              h.Timeout,
 				WriteTimeout:             h.Timeout,
 			}
@@ -235,20 +236,18 @@ func documentFromFasthttpResponse(res *fasthttp.Response) (*goquery.Document, er
 	var err error
 
 	// Decode.
-	// TODO: We should use streams here.
-	var body []byte
+	var body io.Reader
 	if string(res.Header.ContentEncoding()) == "br" {
-		br := brotlihack.NewReader(bytes.NewReader(res.Body()))
-		body, err = io.ReadAll(br)
+		body = brotlihack.NewReader(bytes.NewReader(res.Body()))
 	} else {
-		body, err = res.BodyUncompressed()
+		body = res.BodyStream()
 	}
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to read body: %w", err)
 	}
 
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
+	doc, err := goquery.NewDocumentFromReader(body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse html: %w", err)
 	}
