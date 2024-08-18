@@ -318,6 +318,7 @@ func (h *HttpClient) HtmlGet(ctx context.Context, url string) (*goquery.Document
 	if err != nil {
 		return nil, err
 	}
+	defer res.Body.Close()
 
 	return documentFromHttpResponse(res)
 }
@@ -333,6 +334,7 @@ func (h *HttpClient) HtmlPost(ctx context.Context, url string, contentType strin
 	if err != nil {
 		return nil, err
 	}
+	defer res.Body.Close()
 
 	return documentFromHttpResponse(res)
 }
