@@ -1,14 +1,9 @@
 package engines
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"net/url"
-
-	"github.com/PuerkitoBio/goquery"
-	"github.com/andybalholm/brotli"
 
 	"git.sr.ht/~cmcevoy/srchd/search"
 )
@@ -49,44 +44,12 @@ func (b *brave) Search(ctx context.Context, query string, page int) ([]search.Re
 	ctx, cancel := b.http.Context(ctx)
 	defer cancel()
 
-	res, err := b.http.Get(
+	doc, err := b.http.HtmlGet(
 		ctx,
 		"https://search.brave.com/search?"+form.Encode(),
 	)
 	if err != nil {
 		return nil, err
-	}
-
-	var body []byte
-	if string(res.Header.ContentEncoding()) == "br" {
-		// We need to handle Brotli a little specially because the
-		// decompresser we're using doesn't like Brave's response for
-		// some reason.
-		//
-		// The error from the decompressor isn't fatal but it is
-		// treated as such:
-		// https://github.com/andybalholm/brotli/blob/57434b509141a6ee9681116b8d552069126e615f/reader.go#L74-L76
-		// https://github.com/valyala/fasthttp/blob/b06f4e21d918faa84ae0aa12c9e4dc7285b9767e/http.go#L505-L512
-		//
-		// So my crappy solution is to rewrite the part where it
-		// decompresses Brotli into a byte buffer and explicitly ignore
-		// that "brotli: excessive input" error.
-		br := brotli.NewReader(bytes.NewReader(res.Body()))
-		body, err = io.ReadAll(br)
-		if err != nil && err.Error() != "brotli: excessive input" {
-			//       ^ I told you this sucked!
-			return nil, fmt.Errorf("failed to read body: %w", err)
-		}
-	} else {
-		body, err = res.BodyUncompressed()
-		if err != nil {
-			return nil, fmt.Errorf("failed to read body: %w", err)
-		}
-	}
-
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse html: %w", err)
 	}
 
 	elem := doc.Find(`#results .snippet[data-type]`)

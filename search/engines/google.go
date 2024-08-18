@@ -1,7 +1,6 @@
 package engines
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"log"
@@ -135,25 +134,12 @@ func (g *google) Search(ctx context.Context, query string, page int) ([]search.R
 		form.Set("start", fmt.Sprint(page*10))
 	}
 
-	ctx, cancel := g.http.Context(ctx)
-	defer cancel()
-
-	res, err := g.http.Get(
+	doc, err := g.http.HtmlGet(
 		ctx,
 		fmt.Sprintf("https://www.google.com/search?%s", form.Encode()),
 	)
 	if err != nil {
 		return nil, err
-	}
-
-	body, err := res.BodyUncompressed()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read body: %w", err)
-	}
-
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse html: %w", err)
 	}
 
 	return g.parseGeneral(doc, query)

@@ -1,13 +1,10 @@
 package engines
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"net/url"
 	"strings"
-
-	"github.com/PuerkitoBio/goquery"
 
 	"git.sr.ht/~cmcevoy/srchd/search"
 )
@@ -70,22 +67,12 @@ func (b *yahoo) Search(ctx context.Context, query string, page int) ([]search.Re
 	ctx, cancel := b.http.Context(ctx)
 	defer cancel()
 
-	res, err := b.http.Get(
+	doc, err := b.http.HtmlGet(
 		ctx,
 		"https://search.yahoo.com/search?"+form.Encode(),
 	)
 	if err != nil {
 		return nil, err
-	}
-
-	body, err := res.BodyUncompressed()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read body: %w", err)
-	}
-
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse html: %w", err)
 	}
 
 	elem := doc.Find(`.algo`)

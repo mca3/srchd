@@ -1,14 +1,11 @@
 package engines
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"net/url"
 	"strings"
 	"sync"
-
-	"github.com/PuerkitoBio/goquery"
 
 	"git.sr.ht/~cmcevoy/srchd/search"
 )
@@ -155,7 +152,7 @@ func (d *ddg) Search(ctx context.Context, query string, page int) ([]search.Resu
 	ctx, cancel := d.http.Context(ctx)
 	defer cancel()
 
-	res, err := d.http.Post(
+	doc, err := d.http.HtmlPost(
 		ctx,
 		"https://lite.duckduckgo.com/lite",
 		"application/x-www-form-urlencoded",
@@ -163,16 +160,6 @@ func (d *ddg) Search(ctx context.Context, query string, page int) ([]search.Resu
 	)
 	if err != nil {
 		return nil, err
-	}
-
-	body, err := res.BodyUncompressed()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read body: %w", err)
-	}
-
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse html: %w", err)
 	}
 
 	// Update vqd value.
