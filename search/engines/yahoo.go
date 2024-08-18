@@ -12,7 +12,7 @@ import (
 // User agent to send requests with.
 type yahoo struct {
 	name string
-	http *search.FasthttpClient
+	http *search.HttpClient
 }
 
 var (
@@ -23,7 +23,7 @@ func init() {
 	search.Add("yahoo", true, func(config search.Config) (search.Engine, error) {
 		return &yahoo{
 			name: config.Name,
-			http: config.NewFasthttpClient(),
+			http: config.NewHttpClient(),
 		}, nil
 	})
 }

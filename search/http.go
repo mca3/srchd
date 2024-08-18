@@ -1,17 +1,22 @@
 package search
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"sync"
 	"time"
 
-	"github.com/valyala/fasthttp"
-	"github.com/valyala/fasthttp/fasthttpproxy"
+	"github.com/PuerkitoBio/goquery"
+
+	"git.sr.ht/~cmcevoy/srchd/internal/brotlihack"
 )
 
-// HttpClient is a helpful wrapper around [github.com/valyala/fasthttp.Client] that does useful
+// HttpClient is a helpful wrapper around [net/http.Client] that does useful
 // things to HTTP requests and responses you would've had to write anyway.
 //
 // The zero value is ready to use.
@@ -35,7 +40,7 @@ type HttpClient struct {
 	// must be explicitly set to use a proxy for all HTTP requests.
 	HttpProxy string
 
-	http *fasthttp.Client
+	http *http.Client
 	once sync.Once
 }
 
@@ -60,17 +65,11 @@ func (h *HttpClient) ensureReady() {
 	h.once.Do(func() {
 		// Create a new HTTP client.
 		if h.http == nil {
-			h.http = &fasthttp.Client{
-				NoDefaultUserAgentHeader: true,
-				DialDualStack:            true,
-				ReadTimeout:              h.Timeout,
-				WriteTimeout:             h.Timeout,
+			h.http = &http.Client{
+				Timeout: h.Timeout,
 			}
 
-			if h.HttpProxy != "" {
-				// HTTP proxy was configured, use it.
-				h.http.Dial = fasthttpproxy.FasthttpHTTPDialer(h.HttpProxy)
-			}
+			// TODO: Proxy stuff
 		}
 
 		// The debug flag requires us to use a different Transport than
@@ -93,53 +92,50 @@ func (h *HttpClient) ua() string {
 	return h.UserAgent
 }
 
-// Client fetches the [github.com/valyala/fasthttp.Client] for this specific
+// Client fetches the [github.com/valyala/http.Client] for this specific
 // HTTP client.
 //
 // Do not change fields of the returned Client struct once you have performed a
 // request.
-func (h *HttpClient) Client() *fasthttp.Client {
+func (h *HttpClient) Client() *http.Client {
 	// This is a function because the HttpClient is lazily initialized.
 	h.ensureReady()
 	return h.http
 }
 
 // New creates a new HTTP request.
-func (h *HttpClient) New(ctx context.Context, method, url string, body []byte, contentType ...string) (*fasthttp.Request, error) {
+func (h *HttpClient) New(ctx context.Context, method, url string, body []byte, contentType ...string) (*http.Request, error) {
 	h.ensureReady()
 
-	req := fasthttp.AcquireRequest()
+	// We don't want to create a bytes.Reader on a nil body.
+	var bodyReader io.Reader
+	if len(body) > 0 {
+		bodyReader = bytes.NewReader(body)
+	}
 
-	// Enable hard mode.
-	// This is done because otherwise fasthttp orders things differently
-	// than a browser would, and we *want* to look as close to a browser as
-	// possible.
-	req.Header.DisableSpecialHeader()
-	req.Header.DisableNormalizing()
+	// Initialize the request. This does a lot of the work for us.
+	req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
+	if err != nil {
+		return nil, err
+	}
 
-	// Since we have no special header handling, we have to set all of this ourselves.
-	uri := fasthttp.AcquireURI()
-	uri.Parse(nil, []byte(url))
+	// NOTE: Unlike Fasthttp, I don't think the ordering of headers matters
+	// all that much here, which is unfortunate because that was
+	// essentially the only reason that I moved to it in the first place.
+	// If I ever feel like reinventing the wheel, I could introduce some
+	// mandatory ordering by reimplementing RoundTripper I think, but
+	// that's a project for another day.
 
-	req.SetURI(uri)
-
-	req.Header.SetMethod(method)
-	req.Header.SetBytesV("Host", uri.Host())
-
+	// Add some headers too to make us seem more real.
+	// TODO: This probably isn't enough, or isn't convincing.
 	req.Header.Set("sec-ch-ua", `"Chromium";v="121", "Not)A;Brand";v="24", "Google Chrome";v="121"`)
 	req.Header.Set("sec-ch-ua-mobile", `?0`)
 	req.Header.Set("sec-ch-ua-platform", `"Windows"`)
 	req.Header.Set("Upgrade-Insecure-Requests", `1`)
 	req.Header.Set("User-Agent", h.ua())
-
-	// Add some headers too to make us seem more real.
-	// *The order is important.*
-	// TODO: This probably isn't enough, or isn't convincing.
-	req.Header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
 
 	if body != nil {
-		req.SetBody(body)
-
 		req.Header.Set("Content-Type", contentType[0])
 		req.Header.Set("Content-Length", fmt.Sprint(len(body)))
 	}
@@ -154,16 +150,15 @@ func (h *HttpClient) New(ctx context.Context, method, url string, body []byte, c
 	return req, nil
 }
 
-func (h *HttpClient) Do(req *fasthttp.Request) (*fasthttp.Response, error) {
-	res := fasthttp.AcquireResponse()
-	return res, h.http.DoRedirects(req, res, 5)
+func (h *HttpClient) Do(req *http.Request) (*http.Response, error) {
+	return h.http.Do(req)
 }
 
 // Get performs a GET request on a given URL.
 //
 // If the server responds with a non-200 status code, then the returned
 // response will be nil and err will be of type [HttpError].
-func (h *HttpClient) Get(ctx context.Context, url string) (*fasthttp.Response, error) {
+func (h *HttpClient) Get(ctx context.Context, url string) (*http.Response, error) {
 	h.ensureReady()
 
 	// Create a request.
@@ -179,10 +174,10 @@ func (h *HttpClient) Get(ctx context.Context, url string) (*fasthttp.Response, e
 	}
 
 	// Error out on non-200 status codes.
-	if res.StatusCode() != 200 {
+	if res.StatusCode != 200 {
 		// The request itself succeeded but we aren't interested in
 		// anything we got due to the failure status.
-		return nil, HttpError{Status: res.StatusCode(), URL: url, Method: "GET"}
+		return nil, HttpError{Status: res.StatusCode, URL: url, Method: "GET"}
 	}
 
 	// All good.
@@ -193,7 +188,7 @@ func (h *HttpClient) Get(ctx context.Context, url string) (*fasthttp.Response, e
 //
 // If the server responds with a non-200 status code, then the returned
 // response will be nil and err will be of type [HttpError].
-func (h *HttpClient) Post(ctx context.Context, url string, contentType string, body []byte) (*fasthttp.Response, error) {
+func (h *HttpClient) Post(ctx context.Context, url string, contentType string, body []byte) (*http.Response, error) {
 	h.ensureReady()
 
 	// Create a request.
@@ -209,17 +204,84 @@ func (h *HttpClient) Post(ctx context.Context, url string, contentType string, b
 	}
 
 	// Error out on non-200 status codes.
-	if res.StatusCode() != 200 {
+	if res.StatusCode != 200 {
 		// The request itself succeeded but we aren't interested in
 		// anything we got due to the failure status.
 		if h.Debug {
-			stream, _ := res.BodyUncompressed()
-			log.Printf("post %s failed with status code %d: %s", url, res.StatusCode(), string(stream))
+			log.Printf("post %s failed with status code %d", url, res.StatusCode)
 		}
 
-		return nil, HttpError{Status: res.StatusCode(), URL: url, Method: "POST"}
+		return nil, HttpError{Status: res.StatusCode, URL: url, Method: "POST"}
 	}
 
 	// All good.
 	return res, nil
+}
+
+// Shared code between HtmlGet and HtmlPost.
+func documentFromHttpResponse(res *http.Response) (*goquery.Document, error) {
+	var err error
+
+	// Decode.
+	// This could probably be done better but it gets the job done.
+	var body io.Reader
+	contentEncoding := res.Header.Values("Content-Encoding")
+	if !res.Uncompressed && len(contentEncoding) > 0 {
+		// net/http's default transport will decompress when it can,
+		// but it needs some extra help for Brotli and gzip.
+
+		switch contentEncoding[0] {
+		case "br":
+			body = brotlihack.NewReader(res.Body)
+		case "gzip":
+			body, err = gzip.NewReader(res.Body)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			// Unlikely since we support everything we request, but
+			// it's there if we need it.
+			return nil, fmt.Errorf("unknown content encoding: %v", contentEncoding)
+		}
+	} else {
+		// net/http has probably decompressed it on its own or the
+		// server didn't compress its response at all.
+		body = res.Body
+	}
+
+	doc, err := goquery.NewDocumentFromReader(body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse html: %w", err)
+	}
+	return doc, nil
+}
+
+// Helper function to fetch HTML using a GET request and automatically parse
+// it.
+//
+// If the server responds with a non-200 status code, then the returned
+// response will be nil and err will be of type [FasthttpError].
+func (h *HttpClient) HtmlGet(ctx context.Context, url string) (*goquery.Document, error) {
+	// Fire off a request.
+	res, err := h.Get(ctx, url)
+	if err != nil {
+		return nil, err
+	}
+
+	return documentFromHttpResponse(res)
+}
+
+// Helper function to fetch HTML using a GET request and automatically parse
+// it.
+//
+// If the server responds with a non-200 status code, then the returned
+// response will be nil and err will be of type [FasthttpError].
+func (h *HttpClient) HtmlPost(ctx context.Context, url string, contentType string, body []byte) (*goquery.Document, error) {
+	// Fire off a request.
+	res, err := h.Post(ctx, url, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+
+	return documentFromHttpResponse(res)
 }

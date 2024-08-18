@@ -86,14 +86,24 @@ type Config struct {
 	// Refer to your [Engine] for possible/necessary configuration values.
 	Extra map[string]any `yaml:"-"`
 
-	// Provide a predetermined HTTP client instead of creating one from the
+	// Provide an existing HTTP client instead of creating one from the
 	// settings; it is recommended that you still create it using
-	// NewFasthttpClient, but if this field is filled then NewHttpClient will
-	// return this irregardless of the configuration.
+	// NewFasthttpClient, but if this field is filled then
+	// NewFasthttpClient will return this irregardless of the
+	// configuration.
 	//
 	// This field exists primarily for mocking HTTP responses when
 	// performing testing.
 	FasthttpClient *FasthttpClient `yaml:"-"`
+
+	// Provide an existing HTTP client instead of creating one from the
+	// settings; it is recommended that you still create it using
+	// NewHttpClient, but if this field is filled then NewHttpClient will
+	// return this irregardless of the configuration.
+	//
+	// This field exists primarily for mocking HTTP responses when
+	// performing testing.
+	HttpClient *HttpClient `yaml:"-"`
 }
 
 // Wrapper struct to allow decoding time.Duration string values (such as "5s"
@@ -182,6 +192,49 @@ func (c Config) NewFasthttpClient() *FasthttpClient {
 	}
 
 	return &FasthttpClient{
+		Timeout:   timeout,
+		UserAgent: userAgent,
+		HttpProxy: httpProxy,
+		Debug:     c.Debug,
+	}
+}
+
+// Create a [HttpClient] according to values set in the configuration.
+//
+// Note that if the HttpClient field is specified in the [Config] struct, then
+// its value will be returned.
+func (c Config) NewHttpClient() *HttpClient {
+	if c.HttpClient != nil {
+		// We have a client already created for us.
+		return c.HttpClient
+	}
+
+	// Determine timeout.
+	timeout := c.Timeout.Duration
+	if timeout <= 0 {
+		// Invalid timeout.
+		timeout = DefaultTimeout
+	}
+
+	// Determine user agent.
+	userAgent := c.UserAgent
+	if userAgent == "" {
+		// Empty user agent, use default.
+		userAgent = DefaultUserAgent
+	}
+
+	// Determine the HTTP proxy to use for this engine.
+	httpProxy := c.HttpProxy
+	if httpProxy == "" {
+		// Try to pull a value from the environment.
+		// At worst, this does nothing and sets it to "".
+		httpProxy = os.Getenv("HTTP_PROXY")
+	} else if httpProxy == "-" {
+		// Special value to force no configuration.
+		httpProxy = ""
+	}
+
+	return &HttpClient{
 		Timeout:   timeout,
 		UserAgent: userAgent,
 		HttpProxy: httpProxy,

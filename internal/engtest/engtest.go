@@ -127,6 +127,7 @@ func (t *Tester) mockTestFn(query string) func(t *testing.T) {
 
 	return func(tt *testing.T) {
 		// Create a new HTTP client and setup the transport.
+		// TODO: Normal net/http client support
 		client := t.cfg.NewFasthttpClient()
 		fc := client.Client()
 		fc.ConfigureClient = func(hc *fasthttp.HostClient) error {

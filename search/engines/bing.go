@@ -1,12 +1,9 @@
 package engines
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"net/url"
-
-	"github.com/PuerkitoBio/goquery"
 
 	"git.sr.ht/~cmcevoy/srchd/search"
 )
@@ -14,7 +11,7 @@ import (
 // User agent to send requests with.
 type bing struct {
 	name string
-	http *search.FasthttpClient
+	http *search.HttpClient
 }
 
 var (
@@ -25,7 +22,7 @@ func init() {
 	search.Add("bing", false, func(config search.Config) (search.Engine, error) {
 		return &bing{
 			name: config.Name,
-			http: config.NewFasthttpClient(),
+			http: config.NewHttpClient(),
 		}, nil
 	})
 }
@@ -43,22 +40,12 @@ func (b *bing) Search(ctx context.Context, query string, page int) ([]search.Res
 	ctx, cancel := b.http.Context(ctx)
 	defer cancel()
 
-	res, err := b.http.Get(
+	doc, err := b.http.HtmlGet(
 		ctx,
 		"https://www.bing.com/search?"+form.Encode(),
 	)
 	if err != nil {
 		return nil, err
-	}
-
-	body, err := res.BodyUncompressed()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read body: %w", err)
-	}
-
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse html: %w", err)
 	}
 
 	// Remove all of these. Prepends "Web" to every result.
