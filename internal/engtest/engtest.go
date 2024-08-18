@@ -127,16 +127,16 @@ func (t *Tester) mockTestFn(query string) func(t *testing.T) {
 
 	return func(tt *testing.T) {
 		// Create a new HTTP client and setup the transport.
-		client := t.cfg.NewHttpClient()
+		client := t.cfg.NewFasthttpClient()
 		fc := client.Client()
 		fc.ConfigureClient = func(hc *fasthttp.HostClient) error {
 			hc.Transport = tp
 			return nil
 		}
 
-		// Initialize the engine keeping in mind the new fresh HttpClient.
+		// Initialize the engine keeping in mind the new fresh FasthttpClient.
 		cfg := t.cfg
-		cfg.HttpClient = client
+		cfg.FasthttpClient = client
 		eng, err := cfg.New()
 		if err != nil {
 			tt.Fatalf("unable to initialize engine: %v", err)
@@ -162,16 +162,16 @@ func (t *Tester) updateTestFn(query string) func(tt *testing.T) {
 
 	return func(tt *testing.T) {
 		// Create a new HTTP client and setup the transport.
-		client := t.cfg.NewHttpClient()
+		client := t.cfg.NewFasthttpClient()
 		fc := client.Client()
 		fc.ConfigureClient = func(hc *fasthttp.HostClient) error {
 			hc.Transport = tp
 			return nil
 		}
 
-		// Initialize the engine keeping in mind the new fresh HttpClient.
+		// Initialize the engine keeping in mind the new fresh FasthttpClient.
 		cfg := t.cfg
-		cfg.HttpClient = client
+		cfg.FasthttpClient = client
 		eng, err := cfg.New()
 		if err != nil {
 			tt.Fatalf("unable to initialize engine: %v", err)

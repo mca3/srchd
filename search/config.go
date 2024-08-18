@@ -88,12 +88,12 @@ type Config struct {
 
 	// Provide a predetermined HTTP client instead of creating one from the
 	// settings; it is recommended that you still create it using
-	// NewHttpClient, but if this field is filled then NewHttpClient will
+	// NewFasthttpClient, but if this field is filled then NewHttpClient will
 	// return this irregardless of the configuration.
 	//
 	// This field exists primarily for mocking HTTP responses when
 	// performing testing.
-	HttpClient *HttpClient `yaml:"-"`
+	FasthttpClient *FasthttpClient `yaml:"-"`
 }
 
 // Wrapper struct to allow decoding time.Duration string values (such as "5s"
@@ -146,14 +146,14 @@ func (c Config) MustNew() Engine {
 	return e
 }
 
-// Create a [HttpClient] according to values set in the configuration.
+// Create a [FasthttpClient] according to values set in the configuration.
 //
-// Note that if the HttpClient field is specified in the [Config] struct, then
-// its value will be returned.
-func (c Config) NewHttpClient() *HttpClient {
-	if c.HttpClient != nil {
+// Note that if the FasthttpClient field is specified in the [Config] struct,
+// then its value will be returned.
+func (c Config) NewFasthttpClient() *FasthttpClient {
+	if c.FasthttpClient != nil {
 		// We have a client already created for us.
-		return c.HttpClient
+		return c.FasthttpClient
 	}
 
 	// Determine timeout.
@@ -181,7 +181,7 @@ func (c Config) NewHttpClient() *HttpClient {
 		httpProxy = ""
 	}
 
-	return &HttpClient{
+	return &FasthttpClient{
 		Timeout:   timeout,
 		UserAgent: userAgent,
 		HttpProxy: httpProxy,

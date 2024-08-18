@@ -14,7 +14,7 @@ import (
 // User agent to send requests with.
 type wiby struct {
 	name string
-	http *search.HttpClient
+	http *search.FasthttpClient
 }
 
 type wibyResult struct {
@@ -31,7 +31,7 @@ func init() {
 	search.Add("wiby", true, func(config search.Config) (search.Engine, error) {
 		return &wiby{
 			name: config.Name,
-			http: config.NewHttpClient(),
+			http: config.NewFasthttpClient(),
 		}, nil
 	})
 }

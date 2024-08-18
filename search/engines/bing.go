@@ -14,7 +14,7 @@ import (
 // User agent to send requests with.
 type bing struct {
 	name string
-	http *search.HttpClient
+	http *search.FasthttpClient
 }
 
 var (
@@ -25,7 +25,7 @@ func init() {
 	search.Add("bing", false, func(config search.Config) (search.Engine, error) {
 		return &bing{
 			name: config.Name,
-			http: config.NewHttpClient(),
+			http: config.NewFasthttpClient(),
 		}, nil
 	})
 }

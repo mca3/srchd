@@ -15,7 +15,7 @@ import (
 
 type brave struct {
 	name string
-	http *search.HttpClient
+	http *search.FasthttpClient
 }
 
 var (
@@ -26,7 +26,7 @@ func init() {
 	search.Add("brave", true, func(config search.Config) (search.Engine, error) {
 		// Brave returns a lot of content in its headers, so we need to
 		// increase the size that FastHTTP is willing to read
-		cli := config.NewHttpClient()
+		cli := config.NewFasthttpClient()
 		cli.Client().ReadBufferSize = 8192
 
 		return &brave{

@@ -16,7 +16,7 @@ import (
 // User agent to send requests with.
 type ddg struct {
 	name string
-	http *search.HttpClient
+	http *search.FasthttpClient
 
 	// vqd parameter.
 	//
@@ -35,7 +35,7 @@ func init() {
 	search.Add("ddg", true, func(config search.Config) (search.Engine, error) {
 		return &ddg{
 			name: config.Name,
-			http: config.NewHttpClient(),
+			http: config.NewFasthttpClient(),
 			vqd:  map[string]string{},
 		}, nil
 	})

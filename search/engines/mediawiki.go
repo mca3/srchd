@@ -15,7 +15,7 @@ import (
 type mediawiki struct {
 	name     string
 	endpoint string
-	http     *search.HttpClient
+	http     *search.FasthttpClient
 }
 
 var (
@@ -45,7 +45,7 @@ func init() {
 		return &mediawiki{
 			name:     config.Name,
 			endpoint: ep,
-			http:     config.NewHttpClient(),
+			http:     config.NewFasthttpClient(),
 		}, nil
 	})
 }

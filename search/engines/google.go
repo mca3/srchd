@@ -15,7 +15,7 @@ import (
 
 type google struct {
 	name  string
-	http  *search.HttpClient
+	http  *search.FasthttpClient
 	debug bool
 }
 
@@ -27,7 +27,7 @@ func init() {
 	search.Add("google", true, func(config search.Config) (search.Engine, error) {
 		return &google{
 			name:  config.Name,
-			http:  config.NewHttpClient(),
+			http:  config.NewFasthttpClient(),
 			debug: config.Debug,
 		}, nil
 	})
