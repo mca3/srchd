@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"log"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/quic-go/quic-go/http3"
 
 	"git.sr.ht/~cmcevoy/srchd/internal/brotlihack"
 )
@@ -40,6 +42,23 @@ type HttpClient struct {
 	// must be explicitly set to use a proxy for all HTTP requests.
 	HttpProxy string
 
+	// Enable HTTP/3 using quic-go.
+	QUIC bool
+
+	// Enable zero roundtrip time for a performance boost on subsequent
+	// connections.
+	// Requires QUIC to be true.
+	//
+	// Using 0-RTT can have implications on the security of your connections as it
+	// becomes possible to replay the data you send to the server.
+	// Generally it is only safe to use it if the requests you are doing are
+	// idempotent.
+	// For srchd, this is always the case as of writing.
+	//
+	// For more information, refer to section 8 of RFC 8446:
+	// https://datatracker.ietf.org/doc/html/rfc8446#section-8
+	QUIC_0RTT bool
+
 	http *http.Client
 	once sync.Once
 }
@@ -67,6 +86,20 @@ func (h *HttpClient) ensureReady() {
 		if h.http == nil {
 			h.http = &http.Client{
 				Timeout: h.Timeout,
+			}
+
+			if h.QUIC {
+				// Use HTTP/3.
+				rt := &http3.RoundTripper{}
+				if h.QUIC_0RTT {
+					// Requires a little bit of extra
+					// configuration for TLS.
+					rt.TLSClientConfig = &tls.Config{
+						ClientSessionCache: tls.NewLRUClientSessionCache(100),
+					}
+				}
+
+				h.http.Transport = rt
 			}
 
 			// TODO: Proxy stuff
@@ -103,6 +136,24 @@ func (h *HttpClient) Client() *http.Client {
 	return h.http
 }
 
+// If using QUIC and 0-RTT, then GET/HEAD require special methods.
+func (h *HttpClient) quicMethod(method string) string {
+	if !h.QUIC || !h.QUIC_0RTT {
+		// QUIC and 0RTT aren't both enabled at the same time so just
+		// fallback to the usual methods.
+		return method
+	}
+
+	switch method {
+	case http.MethodGet:
+		return http3.MethodGet0RTT
+	case http.MethodHead:
+		return http3.MethodHead0RTT
+	default:
+		return method
+	}
+}
+
 // New creates a new HTTP request.
 func (h *HttpClient) New(ctx context.Context, method, url string, body []byte, contentType ...string) (*http.Request, error) {
 	h.ensureReady()
@@ -114,7 +165,7 @@ func (h *HttpClient) New(ctx context.Context, method, url string, body []byte, c
 	}
 
 	// Initialize the request. This does a lot of the work for us.
-	req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
+	req, err := http.NewRequestWithContext(ctx, h.quicMethod(method), url, bodyReader)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +213,7 @@ func (h *HttpClient) Get(ctx context.Context, url string) (*http.Response, error
 	h.ensureReady()
 
 	// Create a request.
-	req, err := h.New(ctx, "GET", url, nil)
+	req, err := h.New(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -192,7 +243,7 @@ func (h *HttpClient) Post(ctx context.Context, url string, contentType string, b
 	h.ensureReady()
 
 	// Create a request.
-	req, err := h.New(ctx, "POST", url, body, contentType)
+	req, err := h.New(ctx, http.MethodPost, url, body, contentType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

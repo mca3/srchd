@@ -78,6 +78,23 @@ type Config struct {
 	// of what HTTP_PROXY is set to.
 	HttpProxy string `yaml:"http_proxy"`
 
+	// Enable HTTP/3 using quic-go.
+	QUIC bool `yaml:"quic"`
+
+	// Enable zero roundtrip time for a performance boost on subsequent
+	// connections.
+	// Requires quic to be true.
+	//
+	// Note that using 0RTT can have implications on the security of your
+	// connections as it becomes possible to replay the data you send to
+	// the server so generally it is only safe to use it if the requests
+	// you are doing are idempotent.
+	// For srchd, this is always the case as of writing.
+	//
+	// For more information, refer to section 8 of RFC 8446:
+	// https://datatracker.ietf.org/doc/html/rfc8446#section-8
+	QUIC_0RTT bool `yaml:"quic-0rtt"`
+
 	// Extra contains extra settings that have no corresponding field in
 	// this struct.
 	//
@@ -239,6 +256,8 @@ func (c Config) NewHttpClient() *HttpClient {
 		UserAgent: userAgent,
 		HttpProxy: httpProxy,
 		Debug:     c.Debug,
+		QUIC:      c.QUIC,
+		QUIC_0RTT: c.QUIC_0RTT,
 	}
 }
 

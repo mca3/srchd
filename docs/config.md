@@ -140,6 +140,23 @@ Note that results are combined with the `weight` value taken into consideration 
 
 The default is `1.0`.
 
+### `quic`
+
+Enables HTTP/3 connections on this engine.
+This may or may not work.
+
+Currently, only Google is known to work with HTTP/3.
+
+### `quic-0rtt`
+
+Use 0-RTT on QUIC connections; requires `quic` to be set to true.
+
+Using 0-RTT can have implications on the security of your connections as it becomes possible to replay the data you send to the server.
+Generally it is only safe to use it if the requests you are doing are idempotent.
+For srchd, this is always the case as of writing.
+
+For more information, refer to [section 8 of RFC 8446](https://datatracker.ietf.org/doc/html/rfc8446#section-8).
+
 ### `http_proxy`
 
 Configures a HTTP proxy to send requests through instead of using the one set in the `HTTP_PROXY` environment variable, if any.
