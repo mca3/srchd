@@ -29,6 +29,8 @@ func main() {
 		}
 	}
 
+	log.Printf("srchd %s", Version)
+
 	for _, v := range enabledEngines() {
 		log.Printf("initializing engine %q", v)
 
