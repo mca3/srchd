@@ -10,9 +10,10 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/andybalholm/brotli"
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttpproxy"
+
+	"git.sr.ht/~cmcevoy/srchd/internal/brotlihack"
 )
 
 // FasthttpClient is a helpful wrapper around
@@ -237,32 +238,14 @@ func documentFromFasthttpResponse(res *fasthttp.Response) (*goquery.Document, er
 	// TODO: We should use streams here.
 	var body []byte
 	if string(res.Header.ContentEncoding()) == "br" {
-		// We need to handle Brotli a little specially because the
-		// decompresser we're using doesn't like Brave's response for
-		// some reason.
-		// While this is specific to *just* Brave right now, we might
-		// as well make it available for all engines in the off chance
-		// they need it too.
-		//
-		// The error from the decompressor isn't fatal but it is
-		// treated as such:
-		// https://github.com/andybalholm/brotli/blob/57434b509141a6ee9681116b8d552069126e615f/reader.go#L74-L76
-		// https://github.com/valyala/fasthttp/blob/b06f4e21d918faa84ae0aa12c9e4dc7285b9767e/http.go#L505-L512
-		//
-		// So my crappy solution is to rewrite the part where it
-		// decompresses Brotli into a byte buffer and explicitly ignore
-		// that "brotli: excessive input" error.
-		br := brotli.NewReader(bytes.NewReader(res.Body()))
+		br := brotlihack.NewReader(bytes.NewReader(res.Body()))
 		body, err = io.ReadAll(br)
-		if err != nil && err.Error() != "brotli: excessive input" {
-			//       ^ I told you this sucked!
-			return nil, fmt.Errorf("failed to read body: %w", err)
-		}
 	} else {
 		body, err = res.BodyUncompressed()
-		if err != nil {
-			return nil, fmt.Errorf("failed to read body: %w", err)
-		}
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to read body: %w", err)
 	}
 
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
