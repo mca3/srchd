@@ -2,8 +2,6 @@ package engtest
 
 import (
 	"bytes"
-	"crypto/md5"
-	"encoding/base32"
 	"encoding/gob"
 	"io"
 	"os"
@@ -25,32 +23,6 @@ type mockFasthttpTransport struct {
 	// Update will actually perform the requests and save the responses to
 	// disk instead of simply mocking the response.
 	Update bool
-}
-
-// HTTP header k/v pair.
-type header struct {
-	Key, Value string
-}
-
-// request holds all information from a request.
-type request struct {
-	URL     string
-	Method  string
-	Headers []header
-	Body    []byte
-}
-
-// response holds all information returned from the server.
-type response struct {
-	Status  int
-	Headers []header
-	Body    []byte
-}
-
-// Request/response pair for testdata.
-type reqres struct {
-	Req request
-	Res response
 }
 
 // RoundTrip handles requests to a HTTP server by either responding to them by
@@ -112,32 +84,10 @@ func (ms *mockFasthttpTransport) updateHandle(req *fasthttp.Request, res *fastht
 
 	// Grab the response and save it to disk.
 	resp := getFasthttpResponseInfo(res)
-	ms.save(r, resp)
+	save(ms.Base, r, resp)
 
 	// Success!
 	return nil
-}
-
-// Saves a request/response pair to disk.
-func (ms *mockFasthttpTransport) save(req request, res response) {
-	rr := reqres{req, res}
-
-	// Create the contianing directory if we need to.
-	if err := os.MkdirAll(ms.Base, 0755); err != nil {
-		panic(err)
-	}
-
-	// Save stuff to disk.
-	h, err := os.Create(filepath.Join(ms.Base, hashuri(req.URL)))
-	if err != nil {
-		panic(err)
-	}
-	defer h.Close()
-
-	// Gob is convenient because it works quite well for our use cases.
-	if err := gob.NewEncoder(h).Encode(rr); err != nil {
-		panic(err)
-	}
 }
 
 // Extract pertient information from the request to the server.
@@ -217,12 +167,4 @@ func getFasthttpResponseInfo(ctx *fasthttp.Response) response {
 	}
 
 	return res
-}
-
-// It is often problematic to save files with "/" in the name.
-// Send it through MD5 and base32 the result; it's overkill, but it works.
-func hashuri(uri string) string {
-	md := md5.New()
-	s := md.Sum([]byte(uri))
-	return base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(s[:])
 }
