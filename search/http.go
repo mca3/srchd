@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
 
 	"git.sr.ht/~cmcevoy/srchd/internal/brotlihack"
@@ -95,7 +97,7 @@ func (h *HttpClient) ensureReady() {
 					// Requires a little bit of extra
 					// configuration for TLS.
 					rt.TLSClientConfig = &tls.Config{
-						ClientSessionCache: tls.NewLRUClientSessionCache(100),
+						ClientSessionCache: tls.NewLRUClientSessionCache(120),
 					}
 				}
 
@@ -202,7 +204,26 @@ func (h *HttpClient) New(ctx context.Context, method, url string, body []byte, c
 }
 
 func (h *HttpClient) Do(req *http.Request) (*http.Response, error) {
-	return h.http.Do(req)
+	res, err := h.http.Do(req)
+
+	// If we're using QUIC, then there's a possibility that the request
+	// failed, but it was a temporary failure that could be immediately
+	// retried.
+	var tpErr *quic.TransportError
+	if h.QUIC && errors.As(err, &tpErr) {
+		if tpErr.ErrorCode == quic.NoError {
+			// Retry the request.
+			// XXX: Maybe it would be a good idea to count the
+			// amount of times we go here, so we don't hammer the
+			// server with requests if it keeps telling us
+			// NO_ERROR.
+			return h.Do(req)
+		}
+
+		// This space is intentionally left blank
+	}
+
+	return res, err
 }
 
 // Get performs a GET request on a given URL.
