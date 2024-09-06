@@ -120,7 +120,7 @@ func (tt *Tester) RunTests(t *testing.T, queries ...string) {
 // Mocks the remote end and compares results.
 func (t *Tester) mockTestFn(query string) func(t *testing.T) {
 	fp := filepath.Join("testdata", t.driver, fnencode(query))
-	tp := &mockTransport{
+	tp := &mockFasthttpTransport{
 		Update: false,
 		Base:   fp,
 	}
@@ -156,7 +156,7 @@ func (t *Tester) mockTestFn(query string) func(t *testing.T) {
 // Performs the search query and saves the results.
 func (t *Tester) updateTestFn(query string) func(tt *testing.T) {
 	fp := filepath.Join("testdata", t.driver, fnencode(query))
-	tp := &mockTransport{
+	tp := &mockFasthttpTransport{
 		Update: true,
 		Base:   fp,
 	}

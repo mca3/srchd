@@ -13,10 +13,10 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-// mockTransport implements [github.com/valyala/fasthttp.RoundTripper] and
+// mockFasthttpTransport implements [github.com/valyala/fasthttp.RoundTripper] and
 // intercepts all requests to either return the cached copy or to request a new
 // copy for the cache.
-type mockTransport struct {
+type mockFasthttpTransport struct {
 	// Base directory to read/write files.
 	//
 	// If the directory does not exist, it will be created for you.
@@ -59,7 +59,7 @@ type reqres struct {
 //
 // This way, tests can be done deterministically without hammering the actual
 // search engine in question.
-func (ms *mockTransport) RoundTrip(hc *fasthttp.HostClient, req *fasthttp.Request, resp *fasthttp.Response) (retry bool, err error) {
+func (ms *mockFasthttpTransport) RoundTrip(hc *fasthttp.HostClient, req *fasthttp.Request, resp *fasthttp.Response) (retry bool, err error) {
 	if ms.Update {
 		return false, ms.updateHandle(req, resp)
 	}
@@ -68,8 +68,8 @@ func (ms *mockTransport) RoundTrip(hc *fasthttp.HostClient, req *fasthttp.Reques
 
 // Default mocking request handler.
 // This reads the cache and returns the response.
-func (ms *mockTransport) mockHandle(req *fasthttp.Request, res *fasthttp.Response) error {
-	r := getRequestInfo(req)
+func (ms *mockFasthttpTransport) mockHandle(req *fasthttp.Request, res *fasthttp.Response) error {
+	r := getFasthttpRequestInfo(req)
 	h, err := os.Open(filepath.Join(ms.Base, hashuri(r.URL)))
 	if err != nil {
 		return err
@@ -91,8 +91,8 @@ func (ms *mockTransport) mockHandle(req *fasthttp.Request, res *fasthttp.Respons
 }
 
 // Handles requests when Update mode is on.
-func (ms *mockTransport) updateHandle(req *fasthttp.Request, res *fasthttp.Response) error {
-	r := getRequestInfo(req)
+func (ms *mockFasthttpTransport) updateHandle(req *fasthttp.Request, res *fasthttp.Response) error {
+	r := getFasthttpRequestInfo(req)
 
 	// Perform the actual request
 	client := &fasthttp.Client{
@@ -111,7 +111,7 @@ func (ms *mockTransport) updateHandle(req *fasthttp.Request, res *fasthttp.Respo
 	}
 
 	// Grab the response and save it to disk.
-	resp := getResponseInfo(res)
+	resp := getFasthttpResponseInfo(res)
 	ms.save(r, resp)
 
 	// Success!
@@ -119,7 +119,7 @@ func (ms *mockTransport) updateHandle(req *fasthttp.Request, res *fasthttp.Respo
 }
 
 // Saves a request/response pair to disk.
-func (ms *mockTransport) save(req request, res response) {
+func (ms *mockFasthttpTransport) save(req request, res response) {
 	rr := reqres{req, res}
 
 	// Create the contianing directory if we need to.
@@ -141,7 +141,7 @@ func (ms *mockTransport) save(req request, res response) {
 }
 
 // Extract pertient information from the request to the server.
-func getRequestInfo(ctx *fasthttp.Request) request {
+func getFasthttpRequestInfo(ctx *fasthttp.Request) request {
 	req := request{}
 	req.URL = string(ctx.RequestURI())
 	req.Method = string(ctx.Header.Method())
@@ -170,7 +170,7 @@ func getRequestInfo(ctx *fasthttp.Request) request {
 }
 
 // Extract pertient information from the response from the server.
-func getResponseInfo(ctx *fasthttp.Response) response {
+func getFasthttpResponseInfo(ctx *fasthttp.Response) response {
 	res := response{}
 	res.Status = ctx.Header.StatusCode()
 
