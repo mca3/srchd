@@ -2,12 +2,12 @@ package engtest
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/gob"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
-	"slices"
 
 	"git.sr.ht/~cmcevoy/srchd/internal/brotlihack"
 )
@@ -41,7 +41,9 @@ func (ms *mockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 // Default mocking request handler.
 // This reads the cache and returns the response.
 func (ms *mockTransport) mockHandle(req *http.Request) (*http.Response, error) {
-	res := &http.Response{}
+	res := &http.Response{
+		Header: http.Header{},
+	}
 
 	r := getRequestInfo(req)
 	h, err := os.Open(filepath.Join(ms.Base, hashuri(r.URL)))
@@ -105,6 +107,10 @@ func getRequestInfo(ctx *http.Request) request {
 		if err != nil {
 			panic(err)
 		}
+
+		// Since we consumed the body, we need to reset the body again.
+		// I *do not* like doing this here, but it is what it is.
+		ctx.Body = io.NopCloser(bytes.NewReader(req.Body))
 	}
 
 	return req
@@ -127,36 +133,45 @@ func getResponseInfo(ctx *http.Response) response {
 		}
 	}
 
-	// Don't bother with compression when saving the body.
-	// It might be nice to have it compressed on disk, but I would rather
-	// it be for the entire test file and not just for those who had a
-	// compressed response sent to them.
-	//
-	// Also, we have to do the same Brotli shenanigans as we do in brave
-	// here.
-	// For more info as to why, please look at search/engines/brave.go.
-	var body []byte
+	// Decode.
+	// This could probably be done better but it gets the job done.
+	var body io.Reader
 	var err error
-	if slices.Contains(ctx.TransferEncoding, "br") {
-		br := brotlihack.NewReader(bytes.NewReader(body))
-		body, err = io.ReadAll(br)
-		if err != nil && err.Error() != "brotli: excessive input" {
-			panic(err)
+	contentEncoding := ctx.Header.Values("Content-Encoding")
+	if !ctx.Uncompressed && len(contentEncoding) > 0 {
+		// net/http's default transport will decompress when it can,
+		// but it needs some extra help for Brotli and gzip.
+
+		switch contentEncoding[0] {
+		case "br":
+			body = brotlihack.NewReader(ctx.Body)
+		case "gzip":
+			body, err = gzip.NewReader(ctx.Body)
+			if err != nil {
+				panic(err)
+			}
+		default:
+			// Unlikely since we support everything we request, but
+			// it's there if we need it.
+			panic("unknown content encoding: " + contentEncoding[0])
 		}
 	} else {
-		// All other content encodings should be automatically
-		// decompressed by the default RoundTripper.
-
-		body, err = io.ReadAll(ctx.Body)
-		if err != nil {
-			panic(err)
-		}
+		// net/http has probably decompressed it on its own or the
+		// server didn't compress its response at all.
+		body = ctx.Body
 	}
 
-	if len(body) > 0 {
-		res.Body = make([]byte, len(body))
-		copy(res.Body, body)
+	res.Body, err = io.ReadAll(body)
+	if err != nil {
+		panic(err)
 	}
+
+	// Restore the body since we read it all.
+	// Once again, I don't want to do this, but alas...
+	ctx.Body = io.NopCloser(bytes.NewReader(res.Body))
+
+	// Also drop Content-Encoding since we're dealing with it.
+	ctx.Header.Del("Content-Encoding")
 
 	return res
 }

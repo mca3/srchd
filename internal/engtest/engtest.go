@@ -163,23 +163,31 @@ func (t *Tester) mockTestFn(query string) func(t *testing.T) {
 // Performs the search query and saves the results.
 func (t *Tester) updateTestFn(query string) func(tt *testing.T) {
 	fp := filepath.Join("testdata", t.driver, fnencode(query))
-	tp := &mockFasthttpTransport{
+	ftp := &mockFasthttpTransport{
+		Update: true,
+		Base:   fp,
+	}
+	tp := &mockTransport{
 		Update: true,
 		Base:   fp,
 	}
 
 	return func(tt *testing.T) {
 		// Create a new HTTP client and setup the transport.
-		client := t.cfg.NewFasthttpClient()
-		fc := client.Client()
+		fclient := t.cfg.NewFasthttpClient()
+		fc := fclient.Client()
 		fc.ConfigureClient = func(hc *fasthttp.HostClient) error {
-			hc.Transport = tp
+			hc.Transport = ftp
 			return nil
 		}
 
+		client := t.cfg.NewHttpClient()
+		client.Client().Transport = tp
+
 		// Initialize the engine keeping in mind the new fresh FasthttpClient.
 		cfg := t.cfg
-		cfg.FasthttpClient = client
+		cfg.FasthttpClient = fclient
+		cfg.HttpClient = client
 		eng, err := cfg.New()
 		if err != nil {
 			tt.Fatalf("unable to initialize engine: %v", err)
@@ -189,6 +197,8 @@ func (t *Tester) updateTestFn(query string) func(tt *testing.T) {
 		res, err := eng.Search(context.TODO(), query, 0)
 		if err != nil {
 			tt.Fatalf("query failed: %v", err)
+		} else if len(res) == 0 {
+			tt.Fatalf("query returned zero results")
 		}
 
 		t.saveResults(query, res)
