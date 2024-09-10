@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"embed"
+	"encoding/json"
 	"html/template"
 	"io"
 	"io/fs"
@@ -34,6 +35,11 @@ type confData struct {
 	Selected []string
 }
 
+type searchAPIResponse struct {
+	Results []search.Result  `json:"results,omitempty"`
+	Errors  map[string]error `json:"errors,omitempty"`
+}
+
 //go:embed views/*.html views/*.xml
 var tmplFS embed.FS
 
@@ -60,6 +66,69 @@ func templateExecute(out io.Writer, name string, data any) {
 	}
 }
 
+func httpSearch(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodPost {
+		// Unsupported method
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Grab and parse query parameters.
+	page := r.FormValue("p")
+	query := r.FormValue("q")
+
+	var pageNo int
+	var err error
+	if page != "" {
+		// Only parse the page value if it isn't empty.
+		pageNo, err = strconv.Atoi(page)
+		if err != nil {
+			// TODO
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+
+	// If requested, we can return results in JSON.
+	// There's a better way to check for this, but eh, whatever.
+	isAPI := r.Header.Get("Accept") == "application/json"
+
+	// Perform the search.
+	res, errors, err := doSearch(r, query, pageNo)
+	if err != nil {
+		// Set a failure response code.
+		// Everything else is handled by the template.
+		w.WriteHeader(500)
+	} else if len(res) == 0 {
+		// No results found, set the status code to a 404.
+		w.WriteHeader(404)
+	}
+
+	// If we're doing an API response then return JSON.
+	if isAPI {
+		// TODO: doSearch returns errors and err.
+		// Suppose err is non-nil and errors is empty; what now?
+		apiRes := searchAPIResponse{
+			Results: res,
+			Errors:  errors,
+		}
+
+		json.NewEncoder(w).Encode(apiRes)
+		return
+	}
+
+	// Return the results using HTML.
+	templateExecute(w, "search.html", tmplData{
+		Title:   query,
+		Query:   query,
+		Page:    pageNo,
+		Results: res,
+		Errors:  errors,
+		Error:   err,
+		BaseURL: cfg.BaseURL,
+	})
+}
+
 // Sets up a HTTP server from the current configuration.
 //
 // When the context that is passed to this function is canceled, the server
@@ -73,51 +142,7 @@ func serveHTTP(ctx context.Context) error {
 	h := chi.NewRouter()
 
 	// search endpoint is the one most people will be hitting.
-	h.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet && r.Method != http.MethodPost {
-			// Unsupported method
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-
-		// Grab and parse query parameters.
-		page := r.FormValue("p")
-		query := r.FormValue("q")
-
-		var pageNo int
-		var err error
-		if page != "" {
-			// Only parse the page value if it isn't empty.
-			pageNo, err = strconv.Atoi(page)
-			if err != nil {
-				// TODO
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-		}
-
-		// Perform the search.
-		res, errors, err := doSearch(r, query, pageNo)
-		if err != nil {
-			// Set a failure response code.
-			// Everything else is handled by the template.
-			w.WriteHeader(500)
-		} else if len(res) == 0 {
-			// No results found, set the status code to a 404.
-			w.WriteHeader(404)
-		}
-
-		// Return the results.
-		templateExecute(w, "search.html", tmplData{
-			Title:   query,
-			Query:   query,
-			Page:    pageNo,
-			Results: res,
-			Errors:  errors,
-			Error:   err,
-			BaseURL: cfg.BaseURL,
-		})
-	})
+	h.HandleFunc("/search", httpSearch)
 
 	// index
 	h.Get("/", func(w http.ResponseWriter, r *http.Request) {

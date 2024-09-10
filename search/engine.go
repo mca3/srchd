@@ -24,26 +24,26 @@ type Initializer func(config Config) (Engine, error)
 // Result represents a single search result from an [Engine].
 type Result struct {
 	// Title is the title of the webpage for this result.
-	Title string
+	Title string `json:"title,omitempty"`
 
 	// Description is a small snippet of text from the webpage for this
 	// result, usually containing a portion or all of the query.
-	Description string
+	Description string `json:"description,omitempty"`
 
 	// Link is the URL of this result.
-	Link string
+	Link string `json:"link,omitempty"`
 
 	// Sources holds all engine names that had this result.
 	//
 	// Engines must only populate this with their name.
 	// Results are merged and this field will be populated based upon what
 	// engines return a result similar to this one.
-	Sources []string
+	Sources []string `json:"sources,omitempty"`
 
 	// Score holds the score for this result.
 	//
 	// Engines should not fill this value.
-	Score float64
+	Score float64 `json:"score,omitempty"`
 }
 
 var engines = map[string]Initializer{}
