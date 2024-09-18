@@ -127,8 +127,7 @@ func (h *HttpClient) ua() string {
 	return h.UserAgent
 }
 
-// Client fetches the [github.com/valyala/http.Client] for this specific
-// HTTP client.
+// Client fetches the [net/http.Client] for this specific HTTP client.
 //
 // Do not change fields of the returned Client struct once you have performed a
 // request.
