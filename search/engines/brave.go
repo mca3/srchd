@@ -52,7 +52,7 @@ func (b *brave) Search(ctx context.Context, query string, page int) ([]search.Re
 		return nil, err
 	}
 
-	elem := doc.Find(`#results .snippet[data-type]`)
+	elem := doc.Find(`#results .snippet[data-type="web"]`)
 
 	// Brave results are laid out like this:
 	// .h: link (a element)
