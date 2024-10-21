@@ -48,7 +48,7 @@ func (ms *mockFasthttpTransport) mockHandle(req *fasthttp.Request, res *fasthttp
 	}
 	defer h.Close()
 
-	rr := reqres{}
+	rr := TestData{}
 	if err := gob.NewDecoder(h).Decode(&rr); err != nil {
 		return err
 	}

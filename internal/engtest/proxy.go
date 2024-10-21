@@ -29,7 +29,7 @@ type response struct {
 }
 
 // Request/response pair for testdata.
-type reqres struct {
+type TestData struct {
 	Req request
 	Res response
 }
@@ -44,7 +44,7 @@ func hashuri(uri string) string {
 
 // Saves a request/response pair to disk.
 func save(base string, req request, res response) {
-	rr := reqres{req, res}
+	rr := TestData{req, res}
 
 	// Create the contianing directory if we need to.
 	if err := os.MkdirAll(base, 0755); err != nil {

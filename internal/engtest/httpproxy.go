@@ -52,7 +52,7 @@ func (ms *mockTransport) mockHandle(req *http.Request) (*http.Response, error) {
 	}
 	defer h.Close()
 
-	rr := reqres{}
+	rr := TestData{}
 	if err := gob.NewDecoder(h).Decode(&rr); err != nil {
 		return nil, err
 	}
