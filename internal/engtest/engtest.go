@@ -253,7 +253,10 @@ func (t *Tester) compareResults(tt *testing.T, query string, res []search.Result
 	if len(exp) != len(res) {
 		tt.Errorf("length mismatch; expected %d, got %d", len(exp), len(res))
 	}
-	for i, v := range exp {
+
+	for i := 0; i < min(len(exp), len(res)); i++ {
+		v := exp[i]
+
 		// Sources and score does not matter.
 		// The JSON will already reflect this.
 		res[i].Sources = nil
