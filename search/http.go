@@ -92,7 +92,7 @@ func (h *HttpClient) ensureReady() {
 
 			if h.QUIC {
 				// Use HTTP/3.
-				rt := &http3.RoundTripper{}
+				rt := &http3.Transport{}
 				if h.QUIC_0RTT {
 					// Requires a little bit of extra
 					// configuration for TLS.
