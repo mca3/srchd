@@ -11,3 +11,6 @@ srchd contains a small test harness called engtest which will cache all requests
 The test files are not distributed with srchd because they are big and may contain somewhat personal information, but provided the engines work on your machine running the tests will create ones for you if they aren't there already.
 
 If you would like to update your test files, use `-update`.
+
+To extract the result HTML from test runs, use `go run ./internal/engtest/tool ./search/engines/testdata/<engine>/<query>/<long string>`.
+Note that the HTML from searching some engines may contain JavaScript which will likely be executed automatically by your web browser, which will likely redirect you elsewhere.
