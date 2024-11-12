@@ -201,15 +201,45 @@ func (t *Tester) updateTestFn(query string) func(tt *testing.T) {
 			tt.Fatalf("query returned zero results")
 		}
 
-		t.saveResults(query, res)
-		tt.Logf("updated test files for %q", query)
+		if t.saveResults(tt, query, res) {
+			tt.Logf("updated test files for %q", query)
+		} else {
+			tt.Logf("updated test files %q; results are likely incorrect", query)
+		}
 	}
+}
+
+// hasEmptyField returns a non-empty string if res has a field that is empty.
+//
+// The returned string is the name of the field that is empty.
+func hasEmptyField(res search.Result) string {
+	if res.Title == "" {
+		return "title"
+	} else if res.Link == "" {
+		return "link"
+	} else if res.Description == "" {
+		return "description"
+	}
+
+	return ""
 }
 
 // Save the results from the engine itself to disk.
 //
 // This is called only by [updateTestFn].
-func (t *Tester) saveResults(query string, res []search.Result) {
+func (t *Tester) saveResults(tt *testing.T, query string, res []search.Result) bool {
+	// Strip sources and remove score.
+	ok := true
+	for i := range res {
+		res[i].Sources = nil
+		res[i].Score = 0
+
+		if v := hasEmptyField(res[i]); v != "" {
+			tt.Errorf("res #%d has empty field %s", i, v)
+			ok = false
+		}
+	}
+
 	fp := filepath.Join("testdata", t.driver, fnencode(query))
 	if err := os.MkdirAll(fp, 0755); err != nil {
 		panic(err)
@@ -221,15 +251,11 @@ func (t *Tester) saveResults(query string, res []search.Result) {
 	}
 	defer h.Close()
 
-	// Strip sources and remove score.
-	for i := range res {
-		res[i].Sources = nil
-		res[i].Score = 0
-	}
-
 	if err := json.NewEncoder(h).Encode(res); err != nil {
 		panic(err)
 	}
+
+	return ok
 }
 
 // Compare results from the engine to expected results.
@@ -240,7 +266,7 @@ func (t *Tester) compareResults(tt *testing.T, query string, res []search.Result
 	fp := filepath.Join("testdata", t.driver, fnencode(query))
 	h, err := os.Open(filepath.Join(fp, "results.json"))
 	if err != nil {
-		panic(err)
+		tt.Fatalf("failed to open results: %v", err)
 	}
 	defer h.Close()
 
@@ -264,6 +290,10 @@ func (t *Tester) compareResults(tt *testing.T, query string, res []search.Result
 
 		if !reflect.DeepEqual(v, res[i]) {
 			tt.Errorf("res #%d differs: expected %v, got %v", i, v, res[i])
+		}
+
+		if v := hasEmptyField(res[i]); v != "" {
+			tt.Errorf("res #%d has empty field %s", i, v)
 		}
 	}
 
