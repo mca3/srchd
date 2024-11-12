@@ -65,14 +65,27 @@ func (b *brave) Search(ctx context.Context, query string, page int) ([]search.Re
 		v := search.Result{}
 		e := elem.Eq(i)
 
-		link := e.Find("a.h")
+		link := e.Find("a.heading-serpresult")
 		v.Link, _ = link.Attr("href")
 		v.Link = search.CleanURL(v.Link)
 
 		title := e.Find(".title")
 		v.Title = title.Text()
 
+		// Brave has three types that I know about:
+		// - Regular results
+		// - Product results
+		// - Q&A results
+		// Most results are regular results so we will try that before checking anything.
 		v.Description = e.Find(".snippet-description").Text()
+		if v.Description == "" {
+			if el := e.Find(".product"); el.Length() != 0 {
+				v.Description = el.Find(".description").Text()
+			} else if el := e.Find(".inline-qa"); el.Length() != 0 {
+				v.Description = el.Find(".inline-qa-answer").Text()
+			}
+		}
+
 		v.Sources = []string{b.name}
 
 		results = append(results, v)
