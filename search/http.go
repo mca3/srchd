@@ -61,6 +61,11 @@ type HttpClient struct {
 	// https://datatracker.ietf.org/doc/html/rfc8446#section-8
 	QUIC_0RTT bool
 
+	// Specify a cookie jar to use.
+	//
+	// If left nil, no cookies will be saved.
+	CookieJar http.CookieJar
+
 	http *http.Client
 	once sync.Once
 }
@@ -88,6 +93,7 @@ func (h *HttpClient) ensureReady() {
 		if h.http == nil {
 			h.http = &http.Client{
 				Timeout: h.Timeout,
+				Jar:     h.CookieJar,
 			}
 
 			if h.QUIC {
@@ -290,7 +296,7 @@ func (h *HttpClient) Post(ctx context.Context, url string, contentType string, b
 }
 
 // Shared code between HtmlGet and HtmlPost.
-func documentFromHttpResponse(res *http.Response) (*goquery.Document, error) {
+func DocumentFromHttpResponse(res *http.Response) (*goquery.Document, error) {
 	var err error
 
 	// Decode.
@@ -340,7 +346,7 @@ func (h *HttpClient) HtmlGet(ctx context.Context, url string) (*goquery.Document
 	}
 	defer res.Body.Close()
 
-	return documentFromHttpResponse(res)
+	return DocumentFromHttpResponse(res)
 }
 
 // Helper function to fetch HTML using a GET request and automatically parse
@@ -356,5 +362,5 @@ func (h *HttpClient) HtmlPost(ctx context.Context, url string, contentType strin
 	}
 	defer res.Body.Close()
 
-	return documentFromHttpResponse(res)
+	return DocumentFromHttpResponse(res)
 }
