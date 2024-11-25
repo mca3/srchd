@@ -87,50 +87,61 @@ func (h HttpError) Error() string {
 	return fmt.Sprintf("%s %q failed with status code %d", h.Method, h.URL, h.Status)
 }
 
+func setupProxy(h *HttpClient, hc *http.Client) {
+	if h.HttpProxy == "" {
+		return
+	}
+
+	proxyURL, err := url.Parse(h.HttpProxy)
+	if err != nil {
+		panic(err) // TODO
+	}
+
+	// This is ripped from http.DefaultTransport
+	hc.Transport = &http.Transport{
+		Proxy:                 http.ProxyURL(proxyURL),
+		DialContext:           http.DefaultTransport.(*http.Transport).DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+}
+
+func setupQUIC(h *HttpClient, hc *http.Client) {
+	if !h.QUIC {
+		return
+	}
+
+	// Use HTTP/3.
+	rt := &http3.Transport{}
+	if h.QUIC_0RTT {
+		// Requires a little bit of extra
+		// configuration for TLS.
+		rt.TLSClientConfig = &tls.Config{
+			ClientSessionCache: tls.NewLRUClientSessionCache(120),
+		}
+	}
+
+	hc.Transport = rt
+}
+
 // Ensures that the HttpClient is ready to perform requests.
 func (h *HttpClient) ensureReady() {
 	h.once.Do(func() {
 		// Create a new HTTP client.
-		if h.http == nil {
-			h.http = &http.Client{
-				Timeout: h.Timeout,
-				Jar:     h.CookieJar,
-			}
-
-			if h.HttpProxy != "" {
-				proxyURL, err := url.Parse(h.HttpProxy)
-				if err != nil {
-					panic(err) // TODO
-				}
-
-				// This is ripped from http.DefaultTransport
-				h.http.Transport = &http.Transport{
-					Proxy:                 http.ProxyURL(proxyURL),
-					DialContext:           http.DefaultTransport.(*http.Transport).DialContext,
-					ForceAttemptHTTP2:     true,
-					MaxIdleConns:          100,
-					IdleConnTimeout:       90 * time.Second,
-					TLSHandshakeTimeout:   10 * time.Second,
-					ExpectContinueTimeout: 1 * time.Second,
-				}
-			}
-
-			if h.QUIC {
-				// Use HTTP/3.
-				rt := &http3.Transport{}
-				if h.QUIC_0RTT {
-					// Requires a little bit of extra
-					// configuration for TLS.
-					rt.TLSClientConfig = &tls.Config{
-						ClientSessionCache: tls.NewLRUClientSessionCache(120),
-					}
-				}
-
-				h.http.Transport = rt
-			}
-
-			// TODO: Proxy stuff
+		if h.http != nil {
+			return
 		}
+
+		h.http = &http.Client{
+			Timeout: h.Timeout,
+			Jar:     h.CookieJar,
+		}
+
+		setupProxy(h, h.http)
+		setupQUIC(h, h.http)
 
 		// The debug flag requires us to use a different Transport than
 		// the default one.
