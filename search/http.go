@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -94,6 +95,24 @@ func (h *HttpClient) ensureReady() {
 			h.http = &http.Client{
 				Timeout: h.Timeout,
 				Jar:     h.CookieJar,
+			}
+
+			if h.HttpProxy != "" {
+				proxyURL, err := url.Parse(h.HttpProxy)
+				if err != nil {
+					panic(err) // TODO
+				}
+
+				// This is ripped from http.DefaultTransport
+				h.http.Transport = &http.Transport{
+					Proxy:                 http.ProxyURL(proxyURL),
+					DialContext:           http.DefaultTransport.(*http.Transport).DialContext,
+					ForceAttemptHTTP2:     true,
+					MaxIdleConns:          100,
+					IdleConnTimeout:       90 * time.Second,
+					TLSHandshakeTimeout:   10 * time.Second,
+					ExpectContinueTimeout: 1 * time.Second,
+				}
 			}
 
 			if h.QUIC {
