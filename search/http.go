@@ -466,7 +466,7 @@ func DocumentFromHttpResponse(res *http.Response) (*goquery.Document, error) {
 // it.
 //
 // If the server responds with a non-200 status code, then the returned
-// response will be nil and err will be of type [FasthttpError].
+// response will be nil and err will be of type [HttpError].
 func (h *HttpClient) HtmlGet(ctx context.Context, url string) (*goquery.Document, error) {
 	// Fire off a request.
 	res, err := h.Get(ctx, url)
@@ -482,7 +482,7 @@ func (h *HttpClient) HtmlGet(ctx context.Context, url string) (*goquery.Document
 // it.
 //
 // If the server responds with a non-200 status code, then the returned
-// response will be nil and err will be of type [FasthttpError].
+// response will be nil and err will be of type [HttpError].
 func (h *HttpClient) HtmlPost(ctx context.Context, url string, contentType string, body []byte) (*goquery.Document, error) {
 	// Fire off a request.
 	res, err := h.Post(ctx, url, contentType, body)

@@ -30,8 +30,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/valyala/fasthttp"
-
 	"git.sr.ht/~cmcevoy/srchd/search"
 )
 
@@ -120,10 +118,6 @@ func (tt *Tester) RunTests(t *testing.T, queries ...string) {
 // Mocks the remote end and compares results.
 func (t *Tester) mockTestFn(query string) func(t *testing.T) {
 	fp := filepath.Join("testdata", t.driver, fnencode(query))
-	ftp := &mockFasthttpTransport{
-		Update: false,
-		Base:   fp,
-	}
 	tp := &mockTransport{
 		Update: false,
 		Base:   fp,
@@ -131,19 +125,11 @@ func (t *Tester) mockTestFn(query string) func(t *testing.T) {
 
 	return func(tt *testing.T) {
 		// Create a new HTTP client and setup the transport.
-		fclient := t.cfg.NewFasthttpClient()
-		fc := fclient.Client()
-		fc.ConfigureClient = func(hc *fasthttp.HostClient) error {
-			hc.Transport = ftp
-			return nil
-		}
-
 		client := t.cfg.NewHttpClient()
 		client.Client().Transport = tp
 
-		// Initialize the engine keeping in mind the new fresh FasthttpClient.
+		// Initialize the engine keeping in mind the new fresh HttpClient.
 		cfg := t.cfg
-		cfg.FasthttpClient = fclient
 		cfg.HttpClient = client
 		eng, err := cfg.New()
 		if err != nil {
@@ -163,10 +149,6 @@ func (t *Tester) mockTestFn(query string) func(t *testing.T) {
 // Performs the search query and saves the results.
 func (t *Tester) updateTestFn(query string) func(tt *testing.T) {
 	fp := filepath.Join("testdata", t.driver, fnencode(query))
-	ftp := &mockFasthttpTransport{
-		Update: true,
-		Base:   fp,
-	}
 	tp := &mockTransport{
 		Update: true,
 		Base:   fp,
@@ -174,19 +156,11 @@ func (t *Tester) updateTestFn(query string) func(tt *testing.T) {
 
 	return func(tt *testing.T) {
 		// Create a new HTTP client and setup the transport.
-		fclient := t.cfg.NewFasthttpClient()
-		fc := fclient.Client()
-		fc.ConfigureClient = func(hc *fasthttp.HostClient) error {
-			hc.Transport = ftp
-			return nil
-		}
-
 		client := t.cfg.NewHttpClient()
 		client.Client().Transport = tp
 
-		// Initialize the engine keeping in mind the new fresh FasthttpClient.
+		// Initialize the engine keeping in mind the new fresh HttpClient.
 		cfg := t.cfg
-		cfg.FasthttpClient = fclient
 		cfg.HttpClient = client
 		eng, err := cfg.New()
 		if err != nil {
