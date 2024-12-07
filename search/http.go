@@ -179,19 +179,21 @@ func handleResponseDecompression(res *http.Response) {
 	}
 }
 
-func setupProxy(h *HttpClient, hc *http.Client) {
-	if h.HttpProxy == "" {
-		return
-	}
+func setupTransport(h *HttpClient, hc *http.Client) {
+	var proxy func(*http.Request) (*url.URL, error)
 
-	proxyURL, err := url.Parse(h.HttpProxy)
-	if err != nil {
-		panic(err) // TODO
+	if h.HttpProxy != "" {
+		proxyURL, err := url.Parse(h.HttpProxy)
+		if err != nil {
+			panic(err) // TODO
+		}
+
+		proxy = http.ProxyURL(proxyURL)
 	}
 
 	// This is ripped from http.DefaultTransport
 	hc.Transport = &http.Transport{
-		Proxy:                 http.ProxyURL(proxyURL),
+		Proxy:                 proxy,
 		DialContext:           http.DefaultTransport.(*http.Transport).DialContext,
 		ForceAttemptHTTP2:     true,
 		MaxIdleConns:          100,
@@ -233,7 +235,7 @@ func (h *HttpClient) ensureReady() {
 			Jar:     h.CookieJar,
 		}
 
-		setupProxy(h, h.http)
+		setupTransport(h, h.http)
 		setupQUIC(h, h.http)
 
 		// The debug flag requires us to use a different Transport than
