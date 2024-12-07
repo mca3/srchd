@@ -3,6 +3,7 @@ package search
 import (
 	"bytes"
 	"compress/gzip"
+	"compress/zlib"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -83,8 +84,99 @@ type HttpError struct {
 	Method string
 }
 
+// lazyReader is used to provide a [io.ReadCloser] which lazily initializes the
+// decompresser reader.
+type lazyReader struct {
+	// Initialization function.
+	init func(src io.Reader) (io.Reader, error)
+
+	// Initialization error.
+	// Once set, this never changes.
+	err error
+
+	// Decompresser stream.
+	r io.Reader
+
+	// Original response body.
+	src io.ReadCloser
+}
+
+var (
+	_ io.ReadCloser = &lazyReader{}
+)
+
 func (h HttpError) Error() string {
 	return fmt.Sprintf("%s %q failed with status code %d", h.Method, h.URL, h.Status)
+}
+
+func newLazyReader(src io.ReadCloser, f func(src io.Reader) (io.Reader, error)) *lazyReader {
+	return &lazyReader{init: f, src: src}
+}
+
+// Read reads data from the decompressor stream.
+//
+// Upon the first call to Read, the decompresser will be lazily initialized.
+func (l *lazyReader) Read(data []byte) (int, error) {
+	// Attempt to initialize the reader if necessary
+	if l.r == nil && l.err == nil {
+		l.r, l.err = l.init(l.src)
+	}
+
+	// If there was an initialization error, return it.
+	if l.err != nil {
+		return 0, l.err
+	}
+
+	return l.r.Read(data)
+}
+
+// Close closes the source stream of data.
+func (l *lazyReader) Close() error {
+	// In the case of zlib, a ReadCloser is returned.
+	// This should be closed.
+	if l.r != nil { // it's possible we never read
+		if v, ok := l.r.(io.ReadCloser); ok {
+			// Silently dropping the error is probably bad, but not
+			// sure what else we could do here
+			v.Close()
+		}
+	}
+
+	return l.src.Close()
+}
+
+// Modifies the response object to use a decompresser as a reader if the
+// response is compressed.
+func handleResponseDecompression(res *http.Response) {
+	// TODO: While nobody does this, it is techically possible for multiple
+	// layers of compression to be applied onto a request.
+	// `Content-Encoding: gzip, br` is perfectly valid and I hate it!
+
+	// Unset content encoding and length.
+	// The compiler inlines this.
+	f := func() {
+		res.ContentLength = -1
+		res.Header.Del("Content-Encoding")
+		res.Header.Del("Content-Length")
+	}
+
+	switch res.Header.Get("Content-Encoding") {
+	case "gzip", "x-gzip":
+		f()
+		res.Body = newLazyReader(res.Body, func(src io.Reader) (io.Reader, error) {
+			return gzip.NewReader(src)
+		})
+	case "br":
+		f()
+		res.Body = newLazyReader(res.Body, func(src io.Reader) (io.Reader, error) {
+			return brotlihack.NewReader(src), nil
+		})
+	case "deflate":
+		f()
+		res.Body = newLazyReader(res.Body, func(src io.Reader) (io.Reader, error) {
+			return zlib.NewReader(src)
+		})
+	}
 }
 
 func setupProxy(h *HttpClient, hc *http.Client) {
@@ -106,6 +198,7 @@ func setupProxy(h *HttpClient, hc *http.Client) {
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
+		DisableCompression:    true,
 	}
 }
 
@@ -256,6 +349,10 @@ func (h *HttpClient) Do(req *http.Request) (*http.Response, error) {
 		}
 
 		// This space is intentionally left blank
+	}
+
+	if err == nil {
+		handleResponseDecompression(res)
 	}
 
 	return res, err
