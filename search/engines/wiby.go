@@ -1,7 +1,6 @@
 package engines
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -14,7 +13,7 @@ import (
 // User agent to send requests with.
 type wiby struct {
 	name string
-	http *search.FasthttpClient
+	http *search.HttpClient
 }
 
 type wibyResult struct {
@@ -31,7 +30,7 @@ func init() {
 	search.Add("wiby", true, func(config search.Config) (search.Engine, error) {
 		return &wiby{
 			name: config.Name,
-			http: config.NewFasthttpClient(),
+			http: config.NewHttpClient(),
 		}, nil
 	})
 }
@@ -68,14 +67,10 @@ func (w *wiby) Search(ctx context.Context, query string, page int) ([]search.Res
 	if err != nil {
 		return nil, err
 	}
-
-	body, err := res.BodyUncompressed()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read body: %w", err)
-	}
+	defer res.Body.Close()
 
 	var wres []wibyResult
-	if err := json.NewDecoder(bytes.NewReader(body)).Decode(&wres); err != nil {
+	if err := json.NewDecoder(res.Body).Decode(&wres); err != nil {
 		return nil, err
 	}
 

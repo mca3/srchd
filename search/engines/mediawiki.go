@@ -1,7 +1,6 @@
 package engines
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -15,7 +14,7 @@ import (
 type mediawiki struct {
 	name     string
 	endpoint string
-	http     *search.FasthttpClient
+	http     *search.HttpClient
 }
 
 var (
@@ -45,7 +44,7 @@ func init() {
 		return &mediawiki{
 			name:     config.Name,
 			endpoint: ep,
-			http:     config.NewFasthttpClient(),
+			http:     config.NewHttpClient(),
 		}, nil
 	})
 }
@@ -72,14 +71,10 @@ func (w *mediawiki) Search(ctx context.Context, query string, page int) ([]searc
 	if err != nil {
 		return nil, err
 	}
-
-	body, err := res.BodyUncompressed()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read body: %w", err)
-	}
+	defer res.Body.Close()
 
 	var wres []any
-	if err := json.NewDecoder(bytes.NewReader(body)).Decode(&wres); err != nil {
+	if err := json.NewDecoder(res.Body).Decode(&wres); err != nil {
 		return nil, err
 	}
 
