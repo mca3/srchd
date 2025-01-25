@@ -155,7 +155,7 @@ func (d *ddg) Search(ctx context.Context, query string, page int) ([]search.Resu
 
 	doc, err := d.http.HtmlPost(
 		ctx,
-		"https://lite.duckduckgo.com/lite",
+		"https://lite.duckduckgo.com/lite/",
 		"application/x-www-form-urlencoded",
 		[]byte(form.Encode()),
 	)
