@@ -3,6 +3,7 @@ package search
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -48,6 +49,15 @@ type Result struct {
 
 var engines = map[string]Initializer{}
 var defaultEngines = map[string]struct{}{}
+
+// Well-defined errors.
+var (
+	// The engine returned a captcha and the request was left unfulfilled.
+	// This may either be due to your instance being temporarily banned or
+	// due to changes in the search engine itself which will require
+	// changes in the engine's code.
+	ErrCaptcha = errors.New("engine returned captcha response")
+)
 
 var Supported = sync.OnceValue(func() []string {
 	supportedEngines := []string{}
