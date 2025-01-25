@@ -121,7 +121,7 @@ type stringDuration struct {
 
 // DefaultUserAgent is the user agent that is used when the UserAgent field in
 // [Config] is left empty.
-const DefaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.3"
+const DefaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.3"
 
 // Default timeout setting.
 const DefaultTimeout = time.Second * 10
