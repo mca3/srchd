@@ -2,6 +2,7 @@ package engines
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -159,6 +160,12 @@ func (d *ddg) Search(ctx context.Context, query string, page int) ([]search.Resu
 		[]byte(form.Encode()),
 	)
 	if err != nil {
+		// Special case for captcha status code
+		var h search.HttpError
+		if errors.As(err, &h) && h.Status == 202 {
+			return nil, search.ErrCaptcha
+		}
+
 		return nil, err
 	}
 
