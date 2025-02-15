@@ -119,8 +119,10 @@ func processResults(res []search.Result) []search.Result {
 	firstSeen := map[string]int{}
 
 	for i := 0; i < len(res); i++ {
-		if res[i].Link == "" {
-			// Drop this result because it's invalid
+		link := rewriteUrl(normalizeLink(res[i].Link))
+		if link == "" {
+			// Drop this result because it's invalid OR was
+			// explicitly removed (replace: "").
 			// TODO: What's a good way to move forward with this?
 			// Just log it?
 			res[i], res[len(res)-1] = res[len(res)-1], res[i]
@@ -130,7 +132,6 @@ func processResults(res []search.Result) []search.Result {
 		}
 
 		// Update link. TODO: Move this out of here, maybe.
-		link := rewriteUrl(normalizeLink(res[i].Link))
 		res[i].Link = link
 
 		idx, ok := firstSeen[link]

@@ -45,6 +45,9 @@ type config struct {
 		Hostname string `yaml:"hostname"`
 
 		// Replace the affected part with this value.
+		//
+		// Using an empty string will outright delete the search
+		// result.
 		ReplaceWith string `yaml:"replace"`
 
 		r *regexp.Regexp
@@ -145,6 +148,12 @@ func rewriteUrl(in string) string {
 			// v.r != nil when v.Hostname == ""
 
 			if v.r.MatchString(in) {
+				if v.ReplaceWith == "" {
+					// Return nothing, which will cause the
+					// result to be removed
+					return ""
+				}
+
 				return v.r.ReplaceAllString(in, v.ReplaceWith)
 			}
 		} else if err == nil { // v.Hostname != ""
@@ -162,6 +171,12 @@ func rewriteUrl(in string) string {
 
 			// Swap out the hostname.
 			if parsedUrl.Host == v.Hostname {
+				if v.ReplaceWith == "" {
+					// Return nothing, which will cause the
+					// result to be removed
+					return ""
+				}
+
 				parsedUrl.Host = v.ReplaceWith
 				return parsedUrl.String()
 			}

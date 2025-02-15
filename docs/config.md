@@ -80,6 +80,9 @@ rewrite:
 
 `replace` specifies the value to replace the value found by the regular expression, or the value to replace the hostname.
 
+When this value is an empty string, then any search result that matches this rewrite rule **will be removed**.
+This can be used to "block" specific domains.
+
 ## `engines`
 
 `engines` specifies configuration settings for engines supported by srchd.
