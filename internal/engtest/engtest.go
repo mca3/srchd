@@ -194,6 +194,7 @@ func (t *Tester) updateTestFn(query string) func(tt *testing.T) {
 			tt.Logf("updated test files for %q", query)
 		} else {
 			tt.Logf("updated test files %q; results are likely incorrect", query)
+			tt.Logf("please refer to docs/testing.md for further instructions")
 		}
 	}
 }
