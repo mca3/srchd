@@ -119,6 +119,16 @@ func processResults(res []search.Result) []search.Result {
 	firstSeen := map[string]int{}
 
 	for i := 0; i < len(res); i++ {
+		if res[i].Link == "" {
+			// Drop this result because it's invalid
+			// TODO: What's a good way to move forward with this?
+			// Just log it?
+			res[i], res[len(res)-1] = res[len(res)-1], res[i]
+			res = res[:len(res)-1]
+
+			continue
+		}
+
 		// Update link. TODO: Move this out of here, maybe.
 		link := rewriteUrl(normalizeLink(res[i].Link))
 		res[i].Link = link
@@ -127,10 +137,7 @@ func processResults(res []search.Result) []search.Result {
 		if !ok {
 			// First occurrence.
 			firstSeen[link] = i
-
-			if res[i].Score == 0 {
-				res[i].Score = 1
-			}
+			res[i].Score = 1
 
 			// Ensure all fields are proper before we continue.
 			res[i].Title = truncate(res[i].Title, maxTitleLen)
