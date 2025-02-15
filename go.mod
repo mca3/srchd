@@ -7,7 +7,6 @@ toolchain go1.23.0
 require (
 	github.com/PuerkitoBio/goquery v1.10.1
 	github.com/andybalholm/brotli v1.1.1
-	github.com/go-chi/chi/v5 v5.2.0
 	github.com/quic-go/quic-go v0.48.2
 	gopkg.in/yaml.v3 v3.0.1
 )

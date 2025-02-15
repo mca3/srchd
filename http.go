@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"git.sr.ht/~cmcevoy/srchd/search"
-	"github.com/go-chi/chi/v5"
 )
 
 type tmplData struct {
@@ -139,13 +138,13 @@ func serveHTTP(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	h := chi.NewRouter()
+	mux := http.NewServeMux()
 
 	// search endpoint is the one most people will be hitting.
-	h.HandleFunc("/search", httpSearch)
+	mux.HandleFunc("/search", httpSearch)
 
 	// index
-	h.Get("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		templateExecute(w, "index.html", tmplData{
 			BaseURL: cfg.BaseURL,
 		})
@@ -154,14 +153,14 @@ func serveHTTP(ctx context.Context) error {
 	// opensearch thing.
 	// Allows you to add srchd as a search engine in your browser, provided
 	// BaseURL is configured correctly.
-	h.Get("/opensearch.xml", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /opensearch.xml", func(w http.ResponseWriter, r *http.Request) {
 		templateExecute(w, "opensearch.xml", tmplData{
 			BaseURL: cfg.BaseURL,
 		})
 	})
 
 	// settings stuff.
-	h.Get("/settings", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /settings", func(w http.ResponseWriter, r *http.Request) {
 		// Grab a list of currently enabled engines.
 		// This is used to mark engines as checked.
 		wanted := findWantedEngines(r)
@@ -177,7 +176,7 @@ func serveHTTP(ctx context.Context) error {
 	})
 
 	// write settings
-	h.Post("/settings", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /settings", func(w http.ResponseWriter, r *http.Request) {
 		if err := r.ParseForm(); err != nil {
 			http.Error(w, "invalid form submitted", 400)
 			return
@@ -206,13 +205,13 @@ func serveHTTP(ctx context.Context) error {
 	}
 
 	fileServer := http.FileServer(http.FS(subFS))
-	h.Handle("/css/*", fileServer)
-	h.Handle("/robots.txt", fileServer)
+	mux.Handle("/css/", fileServer)
+	mux.Handle("/robots.txt", fileServer)
 
 	// With the HTTP stuff dealt with, let's setup the server
 	srv := &http.Server{
 		Addr:    cfg.Addr,
-		Handler: h,
+		Handler: mux,
 
 		// TODO: Should we allow these values to be tweaked from the
 		// config?
