@@ -10,7 +10,7 @@ import (
 const (
 	majorVer = 0
 	minorVer = 2
-	patchVer = 0
+	patchVer = 1
 )
 
 // Version of srchd.
