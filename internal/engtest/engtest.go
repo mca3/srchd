@@ -40,6 +40,14 @@ type Tester struct {
 
 	// cfg is the base configuration to use for engine initialization.
 	cfg search.Config
+
+	Config
+}
+
+// Special configuration options for engtest.
+type Config struct {
+	// When set, engtest will ignore empty descriptions in search results.
+	IgnoreEmptyDescription bool
 }
 
 var (
@@ -56,7 +64,7 @@ var (
 // flip Debug to true.
 //
 // If a driver is not supported, New panics.
-func New(driver string, cfg search.Config) *Tester {
+func New(driver string, cfg search.Config, ecfg ...Config) *Tester {
 	// Make sure that the engine is even supported.
 	if !slices.Contains(search.Supported(), driver) {
 		panic(fmt.Sprintf("search engine %q not supported", driver))
@@ -65,9 +73,16 @@ func New(driver string, cfg search.Config) *Tester {
 	cfg.Type = driver
 	cfg.Debug = true
 
+	// Use engtest config if provided
+	ec := Config{}
+	if len(ecfg) > 0 {
+		ec = ecfg[0]
+	}
+
 	return &Tester{
 		driver: driver,
 		cfg:    cfg,
+		Config: ec,
 	}
 }
 
@@ -209,8 +224,10 @@ func (t *Tester) saveResults(tt *testing.T, query string, res []search.Result) b
 		res[i].Score = 0
 
 		if v := hasEmptyField(res[i]); v != "" {
-			tt.Errorf("res #%d has empty field %s", i, v)
-			ok = false
+			if !t.IgnoreEmptyDescription || v != "description" {
+				tt.Errorf("res #%d has empty field %s", i, v)
+				ok = false
+			}
 		}
 	}
 
@@ -267,7 +284,9 @@ func (t *Tester) compareResults(tt *testing.T, query string, res []search.Result
 		}
 
 		if v := hasEmptyField(res[i]); v != "" {
-			tt.Errorf("res #%d has empty field %s", i, v)
+			if !t.IgnoreEmptyDescription || v != "description" {
+				tt.Errorf("res #%d has empty field %s", i, v)
+			}
 		}
 	}
 
