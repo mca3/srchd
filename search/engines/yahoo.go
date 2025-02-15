@@ -83,12 +83,25 @@ func (b *yahoo) Search(ctx context.Context, query string, page int) ([]search.Re
 		v := search.Result{}
 
 		e := elem.Eq(i)
-		title := e.Find("h3.title > a")
-		title.Find(`span`).Remove()
-		v.Link, _ = title.Attr("href")
-		v.Link = search.CleanURL(decodeYahooHref(v.Link))
-		v.Title = title.Text()
-		v.Description = strings.TrimSpace(e.Find(".compText > p").Text())
+
+		// There are now two styles of results, so we need to handle
+		// each of them differently.
+		// I think this is the best way to do it?
+		if title := e.Find("h3.title > a"); title.Length() != 0 {
+			// Old style
+			title.Find(`span`).Remove()
+			v.Link, _ = title.Attr("href")
+			v.Link = search.CleanURL(decodeYahooHref(v.Link))
+			v.Title = title.Text()
+			v.Description = strings.TrimSpace(e.Find(".compText > p").Text())
+		} else {
+			// New style
+			v.Link, _ = elem.Find(`a[data-matarget="algo"]`).Attr("href")
+			v.Link = search.CleanURL(decodeYahooHref(v.Link))
+			v.Title = e.Find("h3.title").Text()
+			v.Description = strings.TrimSpace(e.Find(".compText > p").Text())
+		}
+
 		v.Sources = []string{b.name}
 
 		results[i] = v
