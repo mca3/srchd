@@ -3,11 +3,15 @@ package search
 import (
 	"compress/gzip"
 	"compress/zlib"
+	"context"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/andybalholm/brotli"
 )
@@ -86,4 +90,65 @@ func TestResponseDecompressionBrotli(t *testing.T) {
 
 func TestResponseDecompressionDeflate(t *testing.T) {
 	testResponseDecompression(t, "deflate")
+}
+
+func TestHttpClientCookies(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	cookieChan := make(chan string, 1)
+	defer close(cookieChan)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		for k, v := range r.Header {
+			t.Logf("header %s: %v", k, v)
+		}
+
+		cookieChan <- r.Header.Get("Cookie")
+	}))
+	defer srv.Close()
+
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		panic(err)
+	}
+
+	cli := srv.Client()
+	hc := &HttpClient{
+		CookieJar: jar,
+		http:      cli,
+	}
+
+	// Set a cookie
+	surl, err := url.Parse(srv.URL)
+	if err != nil {
+		panic(err)
+	}
+	jar.SetCookies(surl, []*http.Cookie{
+		&http.Cookie{Name: "test", Value: "hello, world!"},
+	})
+
+	t.Log(jar.Cookies(surl))
+
+	// Build a request
+	req, err := hc.New(ctx, "GET", srv.URL, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	// Perform the request
+	res, err := hc.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	res.Body.Close()
+
+	select {
+	case <-time.After(time.Second):
+		t.Fatalf("request timeout")
+	case cookie := <-cookieChan:
+		if cookie != `test="hello, world!"` {
+			t.Errorf("expected %q, got %q", "hello, world!", cookie)
+		}
+	}
 }

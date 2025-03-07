@@ -11,7 +11,7 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/url"
+	nurl "net/url"
 	"sync"
 	"time"
 
@@ -180,10 +180,10 @@ func handleResponseDecompression(res *http.Response) {
 }
 
 func setupTransport(h *HttpClient, hc *http.Client) {
-	var proxy func(*http.Request) (*url.URL, error)
+	var proxy func(*http.Request) (*nurl.URL, error)
 
 	if h.HttpProxy != "" {
-		proxyURL, err := url.Parse(h.HttpProxy)
+		proxyURL, err := nurl.Parse(h.HttpProxy)
 		if err != nil {
 			panic(err) // TODO
 		}
@@ -290,6 +290,12 @@ func (h *HttpClient) quicMethod(method string) string {
 func (h *HttpClient) New(ctx context.Context, method, url string, body []byte, contentType ...string) (*http.Request, error) {
 	h.ensureReady()
 
+	// Parse the URL. We need this for cookies.
+	parsedUrl, err := nurl.Parse(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse url: %w", err)
+	}
+
 	// We don't want to create a bytes.Reader on a nil body.
 	var bodyReader io.Reader
 	if len(body) > 0 {
@@ -329,6 +335,13 @@ func (h *HttpClient) New(ctx context.Context, method, url string, body []byte, c
 	req.Header.Set("Sec-Fetch-Dest", `document`)
 	req.Header.Set("Accept-Encoding", `gzip, deflate, br`)
 	req.Header.Set("Accept-Language", `en-US,en;q=0.9`)
+
+	// Add in our cookies.
+	if h.CookieJar != nil {
+		for _, v := range h.CookieJar.Cookies(parsedUrl) {
+			req.AddCookie(v)
+		}
+	}
 
 	return req, nil
 }
