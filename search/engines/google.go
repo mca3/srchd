@@ -134,7 +134,7 @@ func (g *google) Search(ctx context.Context, query string, page int) ([]search.R
 		form.Set("start", fmt.Sprint(page*10))
 	}
 
-	doc, err := g.http.HtmlGet(
+	_, doc, err := g.http.HtmlGet(
 		ctx,
 		fmt.Sprintf("https://www.google.com/search?%s", form.Encode()),
 	)

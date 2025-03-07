@@ -44,7 +44,7 @@ func (b *brave) Search(ctx context.Context, query string, page int) ([]search.Re
 	ctx, cancel := b.http.Context(ctx)
 	defer cancel()
 
-	doc, err := b.http.HtmlGet(
+	_, doc, err := b.http.HtmlGet(
 		ctx,
 		"https://search.brave.com/search?"+form.Encode(),
 	)

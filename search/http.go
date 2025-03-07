@@ -480,15 +480,18 @@ func DocumentFromHttpResponse(res *http.Response) (*goquery.Document, error) {
 //
 // If the server responds with a non-200 status code, then the returned
 // response will be nil and err will be of type [HttpError].
-func (h *HttpClient) HtmlGet(ctx context.Context, url string) (*goquery.Document, error) {
+//
+// The returned response will have a closed body.
+func (h *HttpClient) HtmlGet(ctx context.Context, url string) (*http.Response, *goquery.Document, error) {
 	// Fire off a request.
 	res, err := h.Get(ctx, url)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer res.Body.Close()
 
-	return DocumentFromHttpResponse(res)
+	doc, err := DocumentFromHttpResponse(res)
+	return res, doc, err
 }
 
 // Helper function to fetch HTML using a GET request and automatically parse
@@ -496,13 +499,16 @@ func (h *HttpClient) HtmlGet(ctx context.Context, url string) (*goquery.Document
 //
 // If the server responds with a non-200 status code, then the returned
 // response will be nil and err will be of type [HttpError].
-func (h *HttpClient) HtmlPost(ctx context.Context, url string, contentType string, body []byte) (*goquery.Document, error) {
+//
+// The returned response will have a closed body.
+func (h *HttpClient) HtmlPost(ctx context.Context, url string, contentType string, body []byte) (*http.Response, *goquery.Document, error) {
 	// Fire off a request.
 	res, err := h.Post(ctx, url, contentType, body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer res.Body.Close()
 
-	return DocumentFromHttpResponse(res)
+	doc, err := DocumentFromHttpResponse(res)
+	return res, doc, err
 }

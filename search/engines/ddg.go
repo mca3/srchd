@@ -153,7 +153,7 @@ func (d *ddg) Search(ctx context.Context, query string, page int) ([]search.Resu
 	ctx, cancel := d.http.Context(ctx)
 	defer cancel()
 
-	doc, err := d.http.HtmlPost(
+	_, doc, err := d.http.HtmlPost(
 		ctx,
 		"https://lite.duckduckgo.com/lite/",
 		"application/x-www-form-urlencoded",

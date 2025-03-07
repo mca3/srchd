@@ -40,7 +40,7 @@ func (b *bing) Search(ctx context.Context, query string, page int) ([]search.Res
 	ctx, cancel := b.http.Context(ctx)
 	defer cancel()
 
-	doc, err := b.http.HtmlGet(
+	_, doc, err := b.http.HtmlGet(
 		ctx,
 		"https://www.bing.com/search?"+form.Encode(),
 	)
