@@ -58,6 +58,7 @@ func (ms *mockTransport) mockHandle(req *http.Request) (*http.Response, error) {
 	}
 	resp := rr.Res
 
+	res.Request = req
 	res.StatusCode = resp.Status
 	for _, v := range resp.Headers {
 		res.Header.Add(v.Key, v.Value)
