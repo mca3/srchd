@@ -3,7 +3,6 @@ package engines
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/url"
 	"strings"
 
@@ -24,87 +23,69 @@ var (
 
 func init() {
 	search.Add("google", true, func(config search.Config) (search.Engine, error) {
+		// Use the Links user agent which is excempt from the
+		// JavaScript requirement.
+		// Other text-mode web browsers work too.
+		// I can't believe I'm saying this, but thank you Google for
+		// recognizing that they exist!
+		cli := config.NewHttpClient()
+		cli.UserAgent = "Links"
+
 		return &google{
 			name:  config.Name,
-			http:  config.NewHttpClient(),
+			http:  cli,
 			debug: config.Debug,
 		}, nil
 	})
 }
 
+func decodeGoogleHref(href string) string {
+	// usually in the form of /url?q=...&others
+	if !strings.HasPrefix(href, "/url?") {
+		return href // use as-is
+	}
+
+	href = strings.TrimPrefix(href, "/url?")
+
+	vals, err := url.ParseQuery(href)
+	if err != nil {
+		// Fallback to original string
+		return href
+	}
+
+	u := vals.Get("q")
+	if len(u) == 0 {
+		// Fallback one last time
+		return href
+	}
+
+	return u
+}
+
 // Parses a general query results page.
 func (g *google) parseGeneral(doc *goquery.Document, query string) ([]search.Result, error) {
-	// Because we don't use the non-JS variant, we are given an extra class
-	// on search results which is *very* helpful!
-	// And it doesn't change occasionally.
-	elem := doc.Find(`#rso > div .g`)
+	elem := doc.Find(".ezO2md")
 
-	// Perfect.
-	// So these divs have some child divs, with these contents:
-	// 1. header, title, link
-	// 2. description (or an image)
-	// 3. ??? but it doesn't matter (unless it's the description)
-	// In child div 1, we can grab the title from the one and only h3 tag,
-	// and also the href.
-	// In the second (or third) div, the inner text is the description.
-	// And that's all we need!
 	results := make([]search.Result, 0, int(elem.Length()))
 
 	for i := 0; i < cap(results); i++ {
 		v := search.Result{}
 
 		e := elem.Eq(i)
-		if goquery.NodeName(e.Children().First()) == "g-section-with-header" || e.Children().First().HasClass("kp-wholepage") {
-			// kp-wholepage:
-			// Somehow goquery puts this into my selector even
-			// though it should be in #rhs and never actually
-			// matter.
+
+		// All of these are likely to change without notice
+		link := e.Find("a.fuLhoc")
+		desc := e.Find("td.udTCfd .FrIlee")
+
+		v.Title = strings.ToValidUTF8(link.Find(".CVA68e").Text(), "")
+		if len(v.Title) == 0 {
+			// There is a very good chance that this is not the one
 			continue
-		} else if e.Find(".g .tF2Cxc").Length() > 0 {
-			// Handle the first result, which may or may not be special.
-			// The class may or may not have to be changed.
-			e = e.Find(".g .tF2Cxc").First().Children()
-		} else {
-			e = e.Children().First().Children()
 		}
 
-		title := e.Eq(0).Find("h3")
-		link := e.Eq(0).Find("a[href]")
-		desc := e.Eq(1).Children()
-
-		v.Title = title.Text()
 		v.Link, _ = link.Attr("href")
-		v.Link = search.CleanURL(v.Link)
-		v.Description = strings.TrimSpace(desc.Text())
-		if v.Description == "" {
-			// Try the next one over.
-			// I tried to make this a less intrusive change but I
-			// couldn't get what I wanted to do work.
-
-			desc = e.Eq(2).Children()
-			v.Description = strings.TrimSpace(desc.Text())
-		}
-
-		// Debug code to log the HTML of results missing some attributes.
-		// The code I wrote is buggy and because you aren't really
-		// meant to ingest HTML mechanically, prone to breakage.
-		if g.debug && (v.Title == "" || v.Link == "" || v.Description == "") {
-			// Collect a list of things that are missing.
-			missing := []string{}
-			if v.Title == "" {
-				missing = append(missing, "title")
-			}
-			if v.Link == "" {
-				missing = append(missing, "link")
-			}
-			if v.Description == "" {
-				missing = append(missing, "description")
-			}
-
-			ehtml, _ := elem.Eq(i).Html()
-			log.Printf("google: query %q: missing %v: %v", query, missing, ehtml)
-		}
-
+		v.Link = search.CleanURL(decodeGoogleHref(v.Link))
+		v.Description = strings.TrimSpace(strings.ToValidUTF8(desc.Text(), ""))
 		v.Sources = []string{g.name}
 
 		results = append(results, v)
@@ -118,6 +99,7 @@ func (g *google) Search(ctx context.Context, query string, page int) ([]search.R
 	form := url.Values{}
 
 	form.Set("q", query)
+	form.Set("ie", "UTF-8") // defaults to ISO-8859-1
 
 	// This specific option may seem nonsensical at first, but here is some context:
 	// https://tedium.co/2024/05/17/google-web-search-make-default/
