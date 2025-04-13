@@ -68,6 +68,12 @@ type HttpClient struct {
 	// If left nil, no cookies will be saved.
 	CookieJar http.CookieJar
 
+	// If not set to nil, HTTP requests will use these headers as a base
+	// instead of trying to emulate Chrome.
+	//
+	// The user agent is always set.
+	BaseHeaders http.Header
+
 	http *http.Client
 	once sync.Once
 }
@@ -103,6 +109,24 @@ type lazyReader struct {
 
 var (
 	_ io.ReadCloser = &lazyReader{}
+)
+
+var (
+	// Made to look like Chrome.
+	// This may not be super convincing.
+	defaultBaseHeaders = http.Header{
+		"sec-ch-ua":                 []string{`"Chromium";v="134", "Not)A;Brand";v="24", "Google Chrome";v="134"`},
+		"sec-ch-ua-mobile":          []string{`?0`},
+		"sec-ch-ua-platform":        []string{`"Windows"`},
+		"Upgrade-Insecure-Requests": []string{`1`},
+		"Accept":                    []string{"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"},
+		"Sec-Fetch-Site":            []string{`none`},
+		"Sec-Fetch-Mode":            []string{`navigate`},
+		"Sec-Fetch-User":            []string{`?1`},
+		"Sec-Fetch-Dest":            []string{`document`},
+		"Accept-Encoding":           []string{`gzip, deflate, br`},
+		"Accept-Language":           []string{`en-US,en;q=0.9`},
+	}
 )
 
 func (h HttpError) Error() string {
@@ -315,26 +339,23 @@ func (h *HttpClient) New(ctx context.Context, method, url string, body []byte, c
 	// mandatory ordering by reimplementing RoundTripper I think, but
 	// that's a project for another day.
 
-	// Add some headers too to make us seem more real.
-	// TODO: This probably isn't enough, or isn't convincing.
-	req.Header.Set("sec-ch-ua", `"Chromium";v="134", "Not)A;Brand";v="24", "Google Chrome";v="134"`)
-	req.Header.Set("sec-ch-ua-mobile", `?0`)
-	req.Header.Set("sec-ch-ua-platform", `"Windows"`)
-	req.Header.Set("Upgrade-Insecure-Requests", `1`)
 	req.Header.Set("User-Agent", h.ua())
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+	req.Header.Set("Host", parsedUrl.Host)
+
+	if h.BaseHeaders == nil {
+		for k, v := range defaultBaseHeaders {
+			req.Header[k] = v
+		}
+	} else {
+		for k, v := range h.BaseHeaders {
+			req.Header[k] = v
+		}
+	}
 
 	if body != nil {
 		req.Header.Set("Content-Type", contentType[0])
 		req.Header.Set("Content-Length", fmt.Sprint(len(body)))
 	}
-
-	req.Header.Set("Sec-Fetch-Site", `none`)
-	req.Header.Set("Sec-Fetch-Mode", `navigate`)
-	req.Header.Set("Sec-Fetch-User", `?1`)
-	req.Header.Set("Sec-Fetch-Dest", `document`)
-	req.Header.Set("Accept-Encoding", `gzip, deflate, br`)
-	req.Header.Set("Accept-Language", `en-US,en;q=0.9`)
 
 	// Add in our cookies.
 	if h.CookieJar != nil {
