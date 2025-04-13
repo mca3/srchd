@@ -72,7 +72,10 @@ func (ms *mockTransport) updateHandle(req *http.Request) (*http.Response, error)
 	r := getRequestInfo(req)
 
 	// Perform the actual request
-	client := &http.Client{}
+	client := &http.Client{
+		Transport: http.DefaultTransport.(*http.Transport).Clone(),
+	}
+	client.Transport.(*http.Transport).DisableCompression = true
 
 	// Perform the request.
 	res, err := client.Do(req)
