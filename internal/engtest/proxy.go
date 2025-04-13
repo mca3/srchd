@@ -38,7 +38,8 @@ type TestData struct {
 // Send it through MD5 and base32 the result; it's overkill, but it works.
 func hashuri(uri string) string {
 	md := md5.New()
-	s := md.Sum([]byte(uri))
+	md.Write([]byte(uri))
+	s := md.Sum(nil)
 	return base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(s[:])
 }
 
