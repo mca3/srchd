@@ -39,4 +39,5 @@ srchd is a young project and as such doesn't have a lot of support.
 - Google
 - Mediawiki (e.g. Wikipedia, requires configuration)
 - Yahoo
+- Yandex (experimental, off by default)
 - wiby.me (native API)

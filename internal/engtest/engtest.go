@@ -55,6 +55,8 @@ var (
 	// will actually perform the requests and save the updated responses
 	// instead of simply mocking them and reading them from disk.
 	update = flag.Bool("update", false, "Update test fixtures by actually doing the request")
+
+	updateWaitTimeSecs = flag.Int("updatewait", 3, "Amount of time to wait between updates")
 )
 
 // New creates a new Tester from an engine name and a base config.
@@ -125,7 +127,7 @@ func (tt *Tester) RunTests(t *testing.T, queries ...string) {
 		tt.RunTest(t, q)
 
 		if *update && i != len(queries)-1 {
-			time.Sleep(time.Second * 3)
+			time.Sleep(time.Second * time.Duration(*updateWaitTimeSecs))
 		}
 	}
 }

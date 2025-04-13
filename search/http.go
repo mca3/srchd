@@ -368,6 +368,10 @@ func (h *HttpClient) New(ctx context.Context, method, url string, body []byte, c
 }
 
 func (h *HttpClient) Do(req *http.Request) (*http.Response, error) {
+	if h.Debug {
+		log.Printf("requesting %v", req.URL)
+	}
+
 	res, err := h.http.Do(req)
 
 	// If we're using QUIC, then there's a possibility that the request
