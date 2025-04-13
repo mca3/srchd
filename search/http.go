@@ -317,7 +317,7 @@ func (h *HttpClient) New(ctx context.Context, method, url string, body []byte, c
 
 	// Add some headers too to make us seem more real.
 	// TODO: This probably isn't enough, or isn't convincing.
-	req.Header.Set("sec-ch-ua", `"Chromium";v="121", "Not)A;Brand";v="24", "Google Chrome";v="121"`)
+	req.Header.Set("sec-ch-ua", `"Chromium";v="134", "Not)A;Brand";v="24", "Google Chrome";v="134"`)
 	req.Header.Set("sec-ch-ua-mobile", `?0`)
 	req.Header.Set("sec-ch-ua-platform", `"Windows"`)
 	req.Header.Set("Upgrade-Insecure-Requests", `1`)
