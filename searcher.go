@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 	"unicode/utf8"
 
 	"git.sr.ht/~cmcevoy/srchd/search"
@@ -204,7 +205,10 @@ func doSearch(r *http.Request, requestQuery string, page int) ([]search.Result, 
 	fn := func(name string, e search.Engine) {
 		defer wg.Done()
 
+		then := time.Now()
 		res, err := e.Search(r.Context(), query, page)
+		dur := time.Since(then)
+		recordEngineReqTime(name, dur)
 
 		mu.Lock()
 		defer mu.Unlock()
@@ -217,12 +221,14 @@ func doSearch(r *http.Request, requestQuery string, page int) ([]search.Result, 
 				errors = map[string]error{}
 			}
 
+			incrementEngineErrorCount(name)
 			errors[name] = err
 			log.Printf("searching %q failed: %v", name, err)
 
 			return
 		}
 
+		addEngineResultCount(name, len(res))
 		results = append(results, res...)
 	}
 

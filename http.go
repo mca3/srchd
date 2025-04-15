@@ -52,8 +52,11 @@ var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
 	"dec": func(x int) int {
 		return x - 1
 	},
-	"strIn":         slices.Contains[[]string],
-	"engineLatency": getEngineLatency,
+	"strIn":             slices.Contains[[]string],
+	"engineLatency":     getEngineLatency,
+	"engineResultCount": getEngineResultCount,
+	"engineErrorCount":  getEngineErrorCount,
+	"engineAvgReqTime":  getEngineAverageReqTime,
 	"version": func() string {
 		return Version
 	},
@@ -197,6 +200,17 @@ func serveHTTP(ctx context.Context) error {
 		})
 
 		http.Redirect(w, r, "/settings", http.StatusFound)
+	})
+
+	// engine stats
+	mux.HandleFunc("GET /stats", func(w http.ResponseWriter, r *http.Request) {
+		templateExecute(w, "stats.html", confData{
+			tmplData: tmplData{
+				Title:   "Settings",
+				BaseURL: cfg.BaseURL,
+			},
+			Engines: enabledEngines(),
+		})
 	})
 
 	subFS, err := fs.Sub(staticFS, "static")

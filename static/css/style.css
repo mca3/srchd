@@ -126,6 +126,23 @@ a:visited:hover, .result > a:visited:hover .title {
 	padding: 0.5em;
 }
 
+.table, .table tr, .table td, .table th {
+	border: 1px solid #3c3836;
+	border-collapse: collapse;
+	padding: 0.5em;
+}
+
+.table {
+	width: 100%;
+	table-layout: fixed;
+	background: #fbf1c7;
+}
+
+.table th {
+	background: #f2e5bc;
+	text-align: left;
+}
+
 .result {
 	margin: 1em 0;
 }
@@ -210,6 +227,18 @@ a:visited:hover, .result > a:visited:hover .title {
 	#warning {
 		background: #d79921;
 		border: 1px solid #fabd2f;
+	}
+
+	.table, .table tr, .table td, .table th {
+		border: 1px solid #ebdbb2;
+	}
+
+	.table {
+		background: #282828;
+	}
+
+	.table th {
+		background: #1d2021;
 	}
 
 	.result .title {
