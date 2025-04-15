@@ -128,6 +128,7 @@ func processResults(res []search.Result) []search.Result {
 			// Just log it?
 			res[i], res[len(res)-1] = res[len(res)-1], res[i]
 			res = res[:len(res)-1]
+			i-- // retry
 
 			continue
 		}
