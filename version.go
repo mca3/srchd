@@ -9,8 +9,8 @@ import (
 // Bump these when making a new release.
 const (
 	majorVer = 0
-	minorVer = 2
-	patchVer = 1
+	minorVer = 3
+	patchVer = 0
 )
 
 // Version of srchd.
