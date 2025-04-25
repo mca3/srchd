@@ -13,6 +13,7 @@
 		<tr>
 			<th>Name</th>
 			<th>Results</th>
+			<th>Dropped</th>
 			<th>Errors</th>
 			<th>Average Request Time</th>
 		</tr>
@@ -20,6 +21,7 @@
 		<tr>
 			<td>{{.}}</td>
 			<td>{{engineResultCount .}}</td>
+			<td>{{engineDroppedCount .}}</td>
 			<td>{{engineErrorCount .}}</td>
 			<td>{{engineAvgReqTime .}}</td>
 		</tr>

@@ -240,9 +240,12 @@ func doSearch(r *http.Request, requestQuery string, page int) ([]search.Result, 
 			return
 		}
 
-		res, _ = blacklist.Filter(res)
-
+		// Apply the blacklist to the results and record the before &
+		// after count.
 		addEngineResultCount(name, len(res))
+		res, n := blacklist.Filter(res)
+		addEngineDroppedCount(name, n)
+
 		results = append(results, res...)
 	}
 

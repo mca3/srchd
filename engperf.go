@@ -15,6 +15,9 @@ var engineLatencyMu sync.RWMutex
 var engineResultCount = map[string]int{}
 var engineResultCountMu sync.RWMutex
 
+var engineDroppedCount = map[string]int{}
+var engineDroppedCountMu sync.RWMutex
+
 var engineErrorCount = map[string]int{}
 var engineErrorCountMu sync.RWMutex
 
@@ -75,6 +78,15 @@ func getEngineResultCount(name string) int {
 	return engineResultCount[name]
 }
 
+// Returns the total number of dropped results an engine has returned since
+// srchd has started.
+func getEngineDroppedCount(name string) int {
+	engineDroppedCountMu.RLock()
+	defer engineDroppedCountMu.RUnlock()
+
+	return engineDroppedCount[name]
+}
+
 // Returns the total number of errors an engine has returned since srchd has
 // started.
 func getEngineErrorCount(name string) int {
@@ -106,6 +118,15 @@ func addEngineResultCount(name string, count int) {
 	defer engineResultCountMu.Unlock()
 
 	engineResultCount[name] += count
+}
+
+// Increments the number of dropped results an engine has returned since srchd
+// has started.
+func addEngineDroppedCount(name string, count int) {
+	engineDroppedCountMu.Lock()
+	defer engineDroppedCountMu.Unlock()
+
+	engineDroppedCount[name] += count
 }
 
 // Increments the total amount of time spent waiting for results from an engine.

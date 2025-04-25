@@ -52,11 +52,12 @@ var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
 	"dec": func(x int) int {
 		return x - 1
 	},
-	"strIn":             slices.Contains[[]string],
-	"engineLatency":     getEngineLatency,
-	"engineResultCount": getEngineResultCount,
-	"engineErrorCount":  getEngineErrorCount,
-	"engineAvgReqTime":  getEngineAverageReqTime,
+	"strIn":              slices.Contains[[]string],
+	"engineLatency":      getEngineLatency,
+	"engineResultCount":  getEngineResultCount,
+	"engineDroppedCount": getEngineDroppedCount,
+	"engineErrorCount":   getEngineErrorCount,
+	"engineAvgReqTime":   getEngineAverageReqTime,
 	"version": func() string {
 		return Version
 	},
