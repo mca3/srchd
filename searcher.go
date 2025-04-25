@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"slices"
 	"sort"
 	"strings"
@@ -60,9 +61,19 @@ func processOperators(query string) (requestedEngines []string, newQuery string)
 	return
 }
 
+// Normalizes a link by passing it through [net/url].
 func normalizeLink(link string) string {
-	// TODO: Properly
-	return strings.TrimSuffix(link, "/")
+	purl, err := url.Parse(link)
+	if err != nil {
+		return link
+	}
+
+	if purl.Path == "" {
+		// At minimum it should be "/"
+		purl.Path = "/"
+	}
+
+	return purl.String()
 }
 
 // Calculates the multiplier of the result score.
