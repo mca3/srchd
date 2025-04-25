@@ -15,6 +15,8 @@ var (
 	configPath = flag.String("conf", "", "configuration file; ./config.yaml will be used if it exists")
 )
 
+var blacklist = newBlacklist()
+
 func main() {
 	if *configPath == "" {
 		// Try config.yaml
@@ -23,13 +25,23 @@ func main() {
 		}
 	}
 
+	log.Printf("srchd %s", Version)
+
 	if *configPath != "" {
 		if err := loadConfig(*configPath); err != nil {
 			log.Fatalf("failed to load config file: %v", err)
 		}
 	}
 
-	log.Printf("srchd %s", Version)
+	for _, v := range cfg.Blacklists {
+		n, err := blacklist.LoadFile(v)
+		if err != nil {
+			// TODO: should this be fatal?
+			log.Printf("failed to load blacklist %q: %v", v, err)
+		} else {
+			log.Printf("loaded %d rules from %s", n, v)
+		}
+	}
 
 	for _, v := range enabledEngines() {
 		log.Printf("initializing engine %q", v)

@@ -240,6 +240,8 @@ func doSearch(r *http.Request, requestQuery string, page int) ([]search.Result, 
 			return
 		}
 
+		res, _ = blacklist.Filter(res)
+
 		addEngineResultCount(name, len(res))
 		results = append(results, res...)
 	}

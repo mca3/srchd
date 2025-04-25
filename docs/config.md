@@ -79,9 +79,28 @@ rewrite:
 ### `replace`
 
 `replace` specifies the value to replace the value found by the regular expression, or the value to replace the hostname.
+You should use blacklists instead.
 
-When this value is an empty string, then any search result that matches this rewrite rule **will be removed**.
+**(DEPRECATED, use blacklists instead)** When this value is an empty string, then any search result that matches this rewrite rule **will be removed**.
 This can be used to "block" specific domains.
+
+## `blacklists`
+
+`blacklists` specifies a list of files containing [uBlacklist rulesets](https://iorate.github.io/ublacklist/docs/advanced-features#rules).
+File paths are relative to the file where your configuration is stored.
+
+**srchd does not fully implement rulesets.**
+Currently, it supports [match patterns](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Match_patterns) and [Go syntax regular expressions](https://pkg.go.dev/regexp/syntax).
+This is likely enough for most use cases.
+
+**Example**:
+
+```yaml
+blacklists:
+    - ./ublacklist-ai.txt
+    - ./ublacklist-spam.txt
+    - /var/lib/srchd/ublacklist-other.txt
+```
 
 ## `engines`
 

@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"sync"
@@ -47,11 +49,22 @@ type config struct {
 		// Replace the affected part with this value.
 		//
 		// Using an empty string will outright delete the search
-		// result.
+		// result. (This specifically is deprecated and will be removed
+		// soon.)
 		ReplaceWith string `yaml:"replace"`
 
 		r *regexp.Regexp
 	}
+
+	// Specifies a list of file paths containing uBlacklist blocklists.
+	// All file paths are relative to the configuration file directory.
+	//
+	// Currently, srchd supports match patterns and Go syntax regular
+	// expressions; this is enough to cover most use cases.
+	//
+	// This will be used to configure a blacklist that is used to filter
+	// out search results.
+	Blacklists []string
 
 	// Determines the interval to check the connection to certain engines.
 	// This uses Go's [time.Duration], so you can specify values like `5m`
@@ -132,6 +145,36 @@ func loadConfig(path string) error {
 			v.r = regexp.MustCompile(v.Regexp)
 			cfg.Rewrite[i] = v
 		}
+
+		// Notice for the empty ReplaceWith string being a deprecated
+		// method for blocking websites
+		if v.ReplaceWith == "" {
+			rule := ""
+			if v.Regexp != "" {
+				rule = v.Regexp
+			} else {
+				rule = v.Hostname
+			}
+
+			log.Printf(`rewrite rule for %q: replace = "" is deprecated; use blacklists instead`, rule)
+		}
+	}
+
+	// Rewrite all configuration file paths
+	configFileAbs, err := filepath.Abs(path)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path to configuration file: %w", err)
+	}
+
+	configDir := filepath.Dir(configFileAbs)
+
+	for i, v := range cfg.Blacklists {
+		if filepath.IsAbs(v) {
+			// Already absolute.
+			continue
+		}
+
+		cfg.Blacklists[i] = filepath.Join(configDir, v)
 	}
 
 	return nil
