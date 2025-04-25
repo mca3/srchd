@@ -207,7 +207,7 @@ func serveHTTP(ctx context.Context) error {
 	mux.HandleFunc("GET /stats", func(w http.ResponseWriter, r *http.Request) {
 		templateExecute(w, "stats.html", confData{
 			tmplData: tmplData{
-				Title:   "Settings",
+				Title:   "Stats",
 				BaseURL: cfg.BaseURL,
 			},
 			Engines: enabledEngines(),
