@@ -1,5 +1,7 @@
 # srchd
 
+![srchd search results for "small web"](docs/showcase.jpg)
+
 **10 second pitch**:
 srchd is a privacy-respecting metasearch engine written in Go.
 Search several search engines at once without switching tabs, and reap the benefits of (occasionally) better results.
