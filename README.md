@@ -37,6 +37,7 @@ srchd is a young project and as such doesn't have a lot of support.
 - Brave
 - DuckDuckGo
 - Google
+- [Marginalia Search](https://marginalia-search.com) (**not** through API)
 - Mediawiki (e.g. Wikipedia, requires configuration)
 - Yahoo
 - Yandex (experimental, off by default)
