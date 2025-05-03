@@ -266,7 +266,7 @@ func (t *Tester) compareResults(tt *testing.T, query string, res []search.Result
 
 	exp := []search.Result{}
 	if err := json.NewDecoder(h).Decode(&exp); err != nil {
-		panic(err)
+		tt.Fatalf("failed to decode results.json: %v", err)
 	}
 
 	// Check to see if they are equal.
