@@ -2,8 +2,8 @@ package engines
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 	"sync"
@@ -153,19 +153,37 @@ func (d *ddg) Search(ctx context.Context, query string, page int) ([]search.Resu
 	ctx, cancel := d.http.Context(ctx)
 	defer cancel()
 
-	_, doc, err := d.http.HtmlPost(
-		ctx,
-		"https://lite.duckduckgo.com/lite/",
-		"application/x-www-form-urlencoded",
-		[]byte(form.Encode()),
-	)
+	// We need to manually build the request.
+	// TODO: This is ugly.
+	req, err := d.http.New(ctx, http.MethodPost, "https://lite.duckduckgo.com/lite/", []byte(form.Encode()), "application/x-www-form-urlencoded")
 	if err != nil {
-		// Special case for captcha status code
-		var h search.HttpError
-		if errors.As(err, &h) && h.Status == 202 {
-			return nil, search.ErrCaptcha
-		}
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
 
+	// ddg requires us to set the referer header as of some time in May
+	// 2025.
+	// Without it, we get 202s.
+	req.Header.Set("Referer", "https://lite.duckduckgo.com/lite/")
+
+	res, err := d.http.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to perform request: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode == 202 {
+		// Special case for captcha status code
+		return nil, search.ErrCaptcha
+	} else if res.StatusCode != 200 {
+		return nil, search.HttpError{
+			Status: res.StatusCode,
+			URL:    "https://lite.duckduckgo.com/lite/",
+			Method: "POST",
+		}
+	}
+
+	doc, err := search.DocumentFromHttpResponse(res)
+	if err != nil {
 		return nil, err
 	}
 
