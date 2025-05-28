@@ -111,24 +111,6 @@ var (
 	_ io.ReadCloser = &lazyReader{}
 )
 
-var (
-	// Made to look like Chrome.
-	// This may not be super convincing.
-	defaultBaseHeaders = http.Header{
-		"sec-ch-ua":                 []string{`"Chromium";v="134", "Not)A;Brand";v="24", "Google Chrome";v="134"`},
-		"sec-ch-ua-mobile":          []string{`?0`},
-		"sec-ch-ua-platform":        []string{`"Windows"`},
-		"Upgrade-Insecure-Requests": []string{`1`},
-		"Accept":                    []string{"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"},
-		"Sec-Fetch-Site":            []string{`none`},
-		"Sec-Fetch-Mode":            []string{`navigate`},
-		"Sec-Fetch-User":            []string{`?1`},
-		"Sec-Fetch-Dest":            []string{`document`},
-		"Accept-Encoding":           []string{`gzip, deflate, br`},
-		"Accept-Language":           []string{`en-US,en;q=0.9`},
-	}
-)
-
 func (h HttpError) Error() string {
 	return fmt.Sprintf("%s %q failed with status code %d", h.Method, h.URL, h.Status)
 }
