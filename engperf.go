@@ -35,7 +35,10 @@ func pinger(ctx context.Context) {
 	fn := func(name string, eng search.Engine) {
 		then := time.Now()
 		if err := eng.Ping(ctx); err != nil {
+			engineLatencyMu.Lock()
 			engineLatency[name] = 0
+			engineLatencyMu.Unlock()
+
 			log.Printf("pinging %s failed: %v", name, err)
 			return
 		}
